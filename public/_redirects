@@ -1,7 +1,0 @@
-# Netlify redirects for custom domain
-# Force HTTPS redirect
-http://lushlandsmanagement.com/* https://lushlandsmanagement.com/:splat 301!
-http://www.lushlandsmanagement.com/* https://www.lushlandsmanagement.com/:splat 301!
-
-# SPA fallback for React Router
-/*    /index.html   200
