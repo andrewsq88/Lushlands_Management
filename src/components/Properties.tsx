@@ -8,7 +8,7 @@ import { PropertyPhotosModal } from './PropertyPhotosModal';
 import { AdSenseBanner } from './AdSenseBanner';
 
 export function Properties() {
-  const { properties, loading, deleteProperty } = useProperties();
+  const { properties, loading, deleteProperty, updateProperty } = useProperties();
   const { isPremium, getRemainingUsage } = useSubscription();
   const { 
     generateVoiceover, 

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Building2, Users, Home, AlertCircle, X, MapPin, Bed, Bath, Square, AlertTriangle, Clock, Wrench } from 'lucide-react';
 import { useProperties } from '../hooks/useProperties';
 import { useMaintenanceRequests } from '../hooks/useMaintenanceRequests';
-import { useProperties as usePropertiesUpdate } from '../hooks/useProperties';
+import { useMaintenancePartners } from '../hooks/useMaintenancePartners';
 import { PropertyDetailsModal } from './PropertyDetailsModal';
 import { PropertyListModal } from './PropertyListModal';
 import { MaintenanceRequestsListModal } from './MaintenanceRequestsListModal';
@@ -13,6 +13,7 @@ import { AdSenseBanner } from './AdSenseBanner';
 export function Dashboard() {
   const { properties, stats, loading, updateProperty } = useProperties();
   const { highPriorityRequests, openRequests, loading: maintenanceLoading, updateMaintenanceRequest } = useMaintenanceRequests();
+  const { partners: allPartners, loading: partnersLoading } = useMaintenancePartners();
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedMaintenanceRequest, setSelectedMaintenanceRequest] = useState(null);
@@ -23,135 +24,23 @@ export function Dashboard() {
   const [propertyListData, setPropertyListData] = useState([]);
   const [maintenanceListTitle, setMaintenanceListTitle] = useState('');
   const [maintenanceListData, setMaintenanceListData] = useState([]);
-  const [selectedCountry, setSelectedCountry] = useState('USA');
-  const [selectedCity, setSelectedCity] = useState('New York');
+  const [selectedCountry, setSelectedCountry] = useState('');
+  const [selectedCity, setSelectedCity] = useState('');
 
   const recentProperties = properties.slice(0, 5);
 
-  // Mock maintenance partners data with cities
-  const mockMaintenancePartners = [
-    {
-      id: '1',
-      name: 'NYC Property Pros',
-      description: 'Full-service property maintenance and repair specialists serving Manhattan and Brooklyn.',
-      url: '#',
-      category: 'maintenance_partner',
-      city: 'New York',
-      country: 'USA'
-    },
-    {
-      id: '2',
-      name: 'Metro Maintenance Solutions',
-      description: 'Emergency repairs, HVAC services, and general maintenance for residential properties.',
-      url: '#',
-      category: 'maintenance_partner',
-      city: 'New York',
-      country: 'USA'
-    },
-    {
-      id: '3',
-      name: 'LA Property Care',
-      description: 'Professional maintenance services for apartments and single-family homes in Los Angeles.',
-      url: '#',
-      category: 'maintenance_partner',
-      city: 'Los Angeles',
-      country: 'USA'
-    },
-    {
-      id: '4',
-      name: 'West Coast Repairs',
-      description: 'Reliable maintenance and emergency repair services throughout the LA metro area.',
-      url: '#',
-      category: 'maintenance_partner',
-      city: 'Los Angeles',
-      country: 'USA'
-    },
-    {
-      id: '5',
-      name: 'Windy City Maintenance',
-      description: 'Comprehensive property maintenance services for Chicago landlords and property managers.',
-      url: '#',
-      category: 'maintenance_partner',
-      city: 'Chicago',
-      country: 'USA'
-    },
-    {
-      id: '6',
-      name: 'Chicago Property Solutions',
-      description: 'Expert maintenance, plumbing, electrical, and HVAC services for rental properties.',
-      url: '#',
-      category: 'maintenance_partner',
-      city: 'Chicago',
-      country: 'USA'
-    },
-    {
-      id: '7',
-      name: 'Miami Property Maintenance',
-      description: 'Tropical climate specialists providing maintenance services for South Florida properties.',
-      url: '#',
-      category: 'maintenance_partner',
-      city: 'Miami',
-      country: 'USA'
-    },
-    {
-      id: '8',
-      name: 'South Beach Repairs',
-      description: 'Fast response maintenance and repair services for Miami-Dade County properties.',
-      url: '#',
-      category: 'maintenance_partner',
-      city: 'Miami',
-      country: 'USA'
-    },
-    {
-      id: '9',
-      name: 'Toronto Property Services',
-      description: 'Professional property maintenance and repair services for the Greater Toronto Area.',
-      url: '#',
-      category: 'maintenance_partner',
-      city: 'Toronto',
-      country: 'Canada'
-    },
-    {
-      id: '10',
-      name: 'Vancouver Maintenance Co',
-      description: 'Reliable maintenance solutions for residential properties in Vancouver and surrounding areas.',
-      url: '#',
-      category: 'maintenance_partner',
-      city: 'Vancouver',
-      country: 'Canada'
-    },
-    {
-      id: '11',
-      name: 'London Property Maintenance',
-      description: 'Expert property maintenance services for landlords and property managers in London.',
-      url: '#',
-      category: 'maintenance_partner',
-      city: 'London',
-      country: 'UK'
-    },
-    {
-      id: '12',
-      name: 'Manchester Property Care',
-      description: 'Comprehensive maintenance and repair services for properties in Manchester and the North West.',
-      url: '#',
-      category: 'maintenance_partner',
-      city: 'Manchester',
-      country: 'UK'
-    }
-  ];
-
   // Get unique countries for dropdown
-  const availableCountries = [...new Set(mockMaintenancePartners.map(partner => partner.country))];
-  
+  const availableCountries = [...new Set(allPartners.map(partner => partner.country))].sort();
+
   // Get unique cities for selected country
   const availableCities = [...new Set(
-    mockMaintenancePartners
+    allPartners
       .filter(partner => partner.country === selectedCountry)
       .map(partner => partner.city)
-  )];
-  
+  )].sort();
+
   // Filter partners by selected city
-  const filteredPartners = mockMaintenancePartners.filter(
+  const filteredPartners = allPartners.filter(
     partner => partner.country === selectedCountry && partner.city === selectedCity
   );
 
@@ -159,12 +48,28 @@ export function Dashboard() {
   const handleCountryChange = (newCountry: string) => {
     setSelectedCountry(newCountry);
     const citiesInCountry = [...new Set(
-      mockMaintenancePartners
+      allPartners
         .filter(partner => partner.country === newCountry)
         .map(partner => partner.city)
-    )];
+    )].sort();
     setSelectedCity(citiesInCountry[0] || '');
   };
+
+  // Set initial country and city when partners load
+  useEffect(() => {
+    if (allPartners.length > 0 && selectedCountry === '') {
+      const countries = [...new Set(allPartners.map(p => p.country))].sort();
+      if (countries.length > 0) {
+        const firstCountry = countries.includes('USA') ? 'USA' : countries[0];
+        setSelectedCountry(firstCountry);
+        const cities = [...new Set(allPartners.filter(p => p.country === firstCountry).map(p => p.city))].sort();
+        if (cities.length > 0) {
+          const firstCity = cities.includes('New York') ? 'New York' : cities[0];
+          setSelectedCity(firstCity);
+        }
+      }
+    }
+  }, [allPartners, selectedCountry]);
 
   const getStatusBadge = (status: string) => {
     const styles = {
@@ -505,27 +410,35 @@ export function Dashboard() {
             </div>
 
             {/* Partners List */}
-            <div className="space-y-4">
-              {filteredPartners.map((partner) => (
-                <div key={partner.id} className="transform scale-95">
-                  <AffiliateCard
-                    name={partner.name}
-                    description={partner.description}
-                    url={partner.url}
-                    category={partner.category}
-                  />
-                </div>
-              ))}
-            </div>
-
-            {filteredPartners.length === 0 && (
-              <div className="text-center py-8">
-                <Wrench className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No partners available</p>
-                <p className="text-sm text-gray-400 mt-1">
-                  Check back soon for maintenance companies in {selectedCity}, {selectedCountry}
-                </p>
+            {partnersLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-600"></div>
               </div>
+            ) : (
+              <>
+                <div className="space-y-4">
+                  {filteredPartners.map((partner) => (
+                    <div key={partner.id} className="transform scale-95">
+                      <AffiliateCard
+                        name={partner.business_name}
+                        description={partner.description || ''}
+                        url={partner.website_url || '#'}
+                        category={partner.business_type}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {filteredPartners.length === 0 && (
+                  <div className="text-center py-8">
+                    <Wrench className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">No partners available</p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Check back soon for maintenance companies in {selectedCity}, {selectedCountry}
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
