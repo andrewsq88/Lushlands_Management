@@ -1,30 +1,12 @@
-import React, { useState } from 'react';
-import { X, MapPin, User, Calendar, AlertTriangle, Clock, CheckCircle, ChevronDown } from 'lucide-react';
+import React from 'react';
+import { X, MapPin, User, Calendar, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
 
 interface MaintenanceDetailsModalProps {
   maintenanceRequest: any;
   onClose: () => void;
-  onUpdate: (id: string, updates: any) => Promise<any>;
 }
 
-export function MaintenanceDetailsModal({ maintenanceRequest, onClose, onUpdate }: MaintenanceDetailsModalProps) {
-  const [priority, setPriority] = useState(maintenanceRequest.priority);
-  const [status, setStatus] = useState(maintenanceRequest.status);
-  const [updating, setUpdating] = useState(false);
-
-  const handlePriorityChange = async (newPriority: string) => {
-    setUpdating(true);
-    setPriority(newPriority);
-    await onUpdate(maintenanceRequest.id, { priority: newPriority });
-    setUpdating(false);
-  };
-
-  const handleStatusChange = async (newStatus: string) => {
-    setUpdating(true);
-    setStatus(newStatus);
-    await onUpdate(maintenanceRequest.id, { status: newStatus });
-    setUpdating(false);
-  };
+export function MaintenanceDetailsModal({ maintenanceRequest, onClose }: MaintenanceDetailsModalProps) {
   const getPriorityIcon = (priority: string) => {
     switch (priority) {
       case 'High':
@@ -76,40 +58,17 @@ export function MaintenanceDetailsModal({ maintenanceRequest, onClose, onUpdate 
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Request Summary</h2>
               <p className="text-gray-700 leading-relaxed">{maintenanceRequest.description}</p>
             </div>
-            <div className="ml-4 space-y-3">
-              {/* Priority Dropdown */}
+            <div className="ml-4 space-y-2">
               <div className="flex items-center">
-                {getPriorityIcon(priority)}
-                <div className="relative ml-2">
-                  <select
-                    value={priority}
-                    onChange={(e) => handlePriorityChange(e.target.value)}
-                    disabled={updating}
-                    className={`appearance-none px-3 py-1 pr-8 text-sm font-medium rounded-full border cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${getPriorityBadge(priority)} ${updating ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <option value="Low">Low Priority</option>
-                    <option value="Medium">Medium Priority</option>
-                    <option value="High">High Priority</option>
-                  </select>
-                  <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 pointer-events-none" />
-                </div>
+                {getPriorityIcon(maintenanceRequest.priority)}
+                <span className={`ml-2 px-3 py-1 text-sm font-medium rounded-full border ${getPriorityBadge(maintenanceRequest.priority)}`}>
+                  {maintenanceRequest.priority} Priority
+                </span>
               </div>
-
-              {/* Status Dropdown */}
               <div className="flex items-center">
-                <div className="relative">
-                  <select
-                    value={status}
-                    onChange={(e) => handleStatusChange(e.target.value)}
-                    disabled={updating}
-                    className={`appearance-none px-3 py-1 pr-8 text-sm font-medium rounded-full border cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${getStatusBadge(status)} ${updating ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <option value="Open">Open</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Closed">Closed</option>
-                  </select>
-                  <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 pointer-events-none" />
-                </div>
+                <span className={`px-3 py-1 text-sm font-medium rounded-full border ${getStatusBadge(maintenanceRequest.status)}`}>
+                  {maintenanceRequest.status}
+                </span>
               </div>
             </div>
           </div>
