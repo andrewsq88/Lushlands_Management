@@ -42,24 +42,48 @@ export const checkSSLCertificate = async () => {
 
 export const validateEnvironmentVariables = () => {
   const requiredEnvVars = [
-    'VITE_SUPABASE_URL',
-    'VITE_SUPABASE_ANON_KEY'
+    { key: 'VITE_SUPABASE_URL', name: 'Supabase URL' },
+    { key: 'VITE_SUPABASE_ANON_KEY', name: 'Supabase Anonymous Key' }
   ];
-  
-  const missingVars = requiredEnvVars.filter(varName => !import.meta.env[varName]);
-  
+
+  const missingVars = requiredEnvVars.filter(({ key }) => !import.meta.env[key]);
+
   if (missingVars.length > 0) {
-    console.error('Missing environment variables:', missingVars);
+    console.error('Missing environment variables:', missingVars.map(v => v.key));
+    console.warn('Application will run with limited functionality');
+
+    try {
+      window.localStorage.setItem('config_error', JSON.stringify({
+        type: 'missing_env_vars',
+        missingVars: missingVars.map(v => v.key),
+        timestamp: new Date().toISOString()
+      }));
+    } catch (e) {
+      // ignore storage errors
+    }
+
     return false;
   }
-  
+
   // Validate Supabase URL format
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  if (!supabaseUrl.startsWith('https://')) {
+  if (!supabaseUrl || !supabaseUrl.startsWith('https://')) {
     console.error('Supabase URL must use HTTPS:', supabaseUrl);
+    console.warn('Application will run with limited functionality');
+
+    try {
+      window.localStorage.setItem('config_error', JSON.stringify({
+        type: 'invalid_supabase_url',
+        url: supabaseUrl,
+        timestamp: new Date().toISOString()
+      }));
+    } catch (e) {
+      // ignore storage errors
+    }
+
     return false;
   }
-  
+
   console.log('Environment variables validated successfully');
   return true;
 };

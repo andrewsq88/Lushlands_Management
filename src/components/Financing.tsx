@@ -2,8 +2,12 @@ import React from 'react';
 import { TrendingUp, AlertCircle } from 'lucide-react';
 import { useAffiliateLinks } from '../hooks/useAffiliateLinks';
 import { AffiliateCard } from './AffiliateCard';
+import { AdSenseBanner } from './AdSenseBanner';
+import { SEOHead } from './SEOHead';
+import { getPageSEO, generateStructuredData } from '../utils/seoConfig';
 
 export function Financing() {
+  const seoConfig = getPageSEO('financing');
   const { affiliateLinks, loading } = useAffiliateLinks();
 
   const mortgagePartners = affiliateLinks.filter(link => link.category === 'mortgage');
@@ -18,12 +22,19 @@ export function Financing() {
     );
   }
 
+  const financingBreadcrumb = generateStructuredData.breadcrumb([
+    { name: 'Home', url: 'https://www.lushlandsmanagement.com/' },
+    { name: 'Financing', url: 'https://www.lushlandsmanagement.com/financing' }
+  ]);
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Financing</h1>
-        <p className="mt-2 text-gray-600">Explore financing options for your property investments</p>
-      </div>
+    <>
+      <SEOHead config={seoConfig} structuredData={financingBreadcrumb} />
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Property Financing Solutions</h1>
+          <p className="mt-2 text-gray-600">Explore mortgage partners and financing options for your real estate investments</p>
+        </div>
 
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-8 text-white">
@@ -37,6 +48,13 @@ export function Financing() {
           tailored for real estate investors.
         </p>
       </div>
+
+      {/* AdSense Banner - Between hero and partners */}
+      <AdSenseBanner 
+        slot="4567890123" 
+        format="horizontal"
+        className="max-w-4xl mx-auto"
+      />
 
       {/* Recommended Partners */}
       <div>
@@ -91,6 +109,7 @@ export function Financing() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

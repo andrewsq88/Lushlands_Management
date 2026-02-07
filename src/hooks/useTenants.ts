@@ -90,11 +90,16 @@ export function useTenants() {
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase delete error:', error);
+        alert(`Failed to delete tenant: ${error.message}`);
+        throw error;
+      }
       setTenants(prev => prev.filter(t => t.id !== id));
       return { error: null };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting tenant:', error);
+      alert(`Failed to delete tenant: ${error?.message || 'Unknown error'}`);
       return { error };
     }
   };

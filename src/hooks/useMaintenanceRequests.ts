@@ -123,11 +123,16 @@ export function useMaintenanceRequests() {
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase delete error:', error);
+        alert(`Failed to delete maintenance request: ${error.message}`);
+        throw error;
+      }
       setMaintenanceRequests(prev => prev.filter(r => r.id !== id));
       return { error: null };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting maintenance request:', error);
+      alert(`Failed to delete maintenance request: ${error?.message || 'Unknown error'}`);
       return { error };
     }
   };

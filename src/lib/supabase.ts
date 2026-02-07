@@ -1,59 +1,72 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { performanceMonitor } from '../utils/performanceMonitor';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+let supabaseClient: SupabaseClient;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase environment variables:', {
     url: supabaseUrl ? 'present' : 'missing',
     key: supabaseAnonKey ? 'present' : 'missing'
   });
-  throw new Error('Missing Supabase environment variables. Please check your .env file.');
+  console.warn('Creating mock Supabase client - features will be limited');
+
+  // Create a mock client to prevent app crashes
+  supabaseClient = createClient(
+    'https://placeholder.supabase.co',
+    'placeholder-anon-key',
+    {
+      auth: { persistSession: false, autoRefreshToken: false }
+    }
+  );
+} else {
+  console.log('Initializing Supabase client with URL:', supabaseUrl);
+
+  supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+      flowType: 'pkce'
+    },
+    global: {
+      headers: {
+        'X-Client-Info': 'lushlands-management-app'
+      }
+    },
+    db: {
+      schema: 'public'
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 2
+      }
+    }
+  });
+
+  // Monitor Supabase connection only if properly configured
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    console.log('Supabase auth state changed:', event);
+
+    try {
+      performanceMonitor.trackUserAction(`auth-${event}`);
+    } catch (error) {
+      console.warn('Performance monitoring error:', error);
+    }
+
+    if (event === 'SIGNED_IN') {
+      console.log('User signed in successfully');
+    } else if (event === 'SIGNED_OUT') {
+      console.log('User signed out');
+    } else if (event === 'TOKEN_REFRESHED') {
+      console.log('Auth token refreshed');
+    }
+  });
 }
 
-console.log('Initializing Supabase client with URL:', supabaseUrl);
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    flowType: 'pkce'
-  },
-  global: {
-    headers: {
-      'X-Client-Info': 'lushlands-management-app'
-    }
-  },
-  db: {
-    schema: 'public'
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 2
-    }
-  }
-});
-
-// Monitor Supabase connection
-supabase.auth.onAuthStateChange((event, session) => {
-  console.log('Supabase auth state changed:', event);
-  
-  try {
-    performanceMonitor.trackUserAction(`auth-${event}`);
-  } catch (error) {
-    console.warn('Performance monitoring error:', error);
-  }
-  
-  if (event === 'SIGNED_IN') {
-    console.log('User signed in successfully');
-  } else if (event === 'SIGNED_OUT') {
-    console.log('User signed out');
-  } else if (event === 'TOKEN_REFRESHED') {
-    console.log('Auth token refreshed');
-  }
-});
+export const supabase = supabaseClient;
 
 export type Database = {
   public: {

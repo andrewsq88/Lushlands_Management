@@ -173,6 +173,7 @@ export function MaintenanceRequestsListModal({ title, maintenanceRequests, onClo
         <MaintenanceDetailsModal
           maintenanceRequest={selectedRequest}
           onClose={closeDetailsModal}
+          onUpdate={updateMaintenanceRequest}
         />
       )}
     </>

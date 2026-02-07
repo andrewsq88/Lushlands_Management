@@ -1,0 +1,19 @@
+# LushLands Management - Property Management Platform
+# Allow all search engines to crawl and index public pages
+
+User-agent: *
+Allow: /
+
+# Allow important pages for SEO
+Allow: /properties
+Allow: /tenants
+Allow: /maintenance
+Allow: /payments
+Allow: /financing
+Allow: /down-payment
+
+# Sitemap location
+Sitemap: https://www.lushlandsmanagement.com/sitemap.xml
+
+# Crawl delay (optional - helps prevent server overload)
+Crawl-delay: 1

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { setUserContext, clearUserContext, captureException } from '../lib/sentry';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -26,6 +27,12 @@ export function useAuth() {
         console.log('Auth state changed:', event, session ? 'User logged in' : 'User logged out');
         setUser(session?.user ?? null);
         setLoading(false);
+
+        if (session?.user) {
+          setUserContext({ id: session.user.id, email: session.user.email || '' });
+        } else {
+          clearUserContext();
+        }
       }
     );
 
@@ -48,6 +55,8 @@ export function useAuth() {
       
       if (error) {
         console.error('Sign in error:', error);
+        captureException(new Error(`Sign in failed: ${error.message}`), { email });
+
         // Provide more user-friendly error messages
         if (error.message.includes('Invalid login credentials')) {
           return { data, error: { ...error, message: 'Invalid email or password. Please check your credentials and try again.' } };
@@ -58,15 +67,16 @@ export function useAuth() {
       } else {
         console.log('Sign in successful');
       }
-      
+
       return { data, error };
     } catch (error) {
       console.error('Unexpected sign in error:', error);
-      return { 
-        data: null, 
-        error: { 
+      captureException(error instanceof Error ? error : new Error('Unknown sign in error'), { email });
+      return {
+        data: null,
+        error: {
           message: error instanceof Error ? error.message : 'An unexpected error occurred during sign in'
-        } 
+        }
       };
     }
   };

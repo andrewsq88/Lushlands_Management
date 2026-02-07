@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Database } from '../lib/supabase';
+import { retryWithBackoff } from '../utils/retryHelper';
 
 type Property = Database['public']['Tables']['properties']['Row'];
 type PropertyInsert = Database['public']['Tables']['properties']['Insert'];
@@ -9,18 +10,42 @@ type PropertyUpdate = Database['public']['Tables']['properties']['Update'];
 export function useProperties() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchProperties = async () => {
     try {
-      const { data, error } = await supabase
-        .from('properties')
-        .select('*')
-        .order('created_at', { ascending: false });
+      setError(null);
+      const { data: { user } } = await supabase.auth.getUser();
 
-      if (error) throw error;
+      if (!user) {
+        console.warn('No authenticated user found');
+        setProperties([]);
+        setLoading(false);
+        return;
+      }
+
+      const data = await retryWithBackoff(
+        async () => {
+          const { data, error: fetchError } = await supabase
+            .from('properties')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (fetchError) {
+            throw new Error(fetchError.message);
+          }
+
+          return data;
+        },
+        { maxAttempts: 2, initialDelay: 500 }
+      );
+
       setProperties(data || []);
     } catch (error) {
       console.error('Error fetching properties:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setError(`Failed to load properties: ${errorMessage}`);
+      setProperties([]);
     } finally {
       setLoading(false);
     }
@@ -29,7 +54,11 @@ export function useProperties() {
   const addProperty = async (property: Omit<PropertyInsert, 'user_id'>) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      if (!user) {
+        const authError = new Error('User not authenticated');
+        console.error('Add property failed:', authError);
+        return { data: null, error: authError };
+      }
 
       const { data, error } = await supabase
         .from('properties')
@@ -37,8 +66,14 @@ export function useProperties() {
         .select()
         .single();
 
-      if (error) throw error;
-      setProperties(prev => [data, ...prev]);
+      if (error) {
+        console.error('Supabase error adding property:', error);
+        return { data: null, error };
+      }
+
+      if (data) {
+        setProperties(prev => [data, ...prev]);
+      }
       return { data, error: null };
     } catch (error) {
       console.error('Error adding property:', error);
@@ -71,11 +106,16 @@ export function useProperties() {
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase delete error:', error);
+        alert(`Failed to delete property: ${error.message}`);
+        throw error;
+      }
       setProperties(prev => prev.filter(p => p.id !== id));
       return { error: null };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting property:', error);
+      alert(`Failed to delete property: ${error?.message || 'Unknown error'}`);
       return { error };
     }
   };
@@ -93,6 +133,7 @@ export function useProperties() {
   return {
     properties,
     loading,
+    error,
     stats,
     addProperty,
     updateProperty,

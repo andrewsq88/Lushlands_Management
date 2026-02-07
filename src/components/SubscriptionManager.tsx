@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { Crown, Check, X, CreditCard, AlertCircle, Loader2 } from 'lucide-react';
 import { useSubscription } from '../hooks/useSubscription';
 import { PaymentForm } from './PaymentForm';
+import { SEOHead } from './SEOHead';
+import { getPageSEO, generateStructuredData } from '../utils/seoConfig';
 
 export function SubscriptionManager() {
+  const seoConfig = getPageSEO('subscription');
   const { subscription, isPremium, createPremiumSubscription, cancelSubscription, loading } = useSubscription();
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -53,12 +56,19 @@ export function SubscriptionManager() {
     'Advanced Reporting'
   ];
 
+  const subscriptionBreadcrumb = generateStructuredData.breadcrumb([
+    { name: 'Home', url: 'https://www.lushlandsmanagement.com/' },
+    { name: 'Subscription', url: 'https://www.lushlandsmanagement.com/subscription' }
+  ]);
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Subscription Management</h1>
-        <p className="mt-2 text-gray-600">Manage your LushLands Management subscription</p>
-      </div>
+    <>
+      <SEOHead config={seoConfig} structuredData={subscriptionBreadcrumb} />
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Subscription Plans & Pricing</h1>
+          <p className="mt-2 text-gray-600">Choose the right property management software plan for your needs</p>
+        </div>
 
       {/* Current Subscription Status */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -207,6 +217,7 @@ export function SubscriptionManager() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

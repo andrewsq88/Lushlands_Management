@@ -3,10 +3,15 @@ import { Plus, Edit2, Trash2, Search, Filter, AlertTriangle, Clock, CheckCircle,
 import { useMaintenanceRequests } from '../hooks/useMaintenanceRequests';
 import { MaintenanceForm } from './MaintenanceForm';
 import { MaintenanceRequestsListModal } from './MaintenanceRequestsListModal';
+import { AdSenseBanner } from './AdSenseBanner';
+import { SEOHead } from './SEOHead';
+import { getPageSEO, generateStructuredData } from '../utils/seoConfig';
 
 export function Maintenance() {
+  const seoConfig = getPageSEO('maintenance');
   const { maintenanceRequests, highPriorityRequests, openRequests, loading, updateMaintenanceRequest, deleteMaintenanceRequest } = useMaintenanceRequests();
   const [showForm, setShowForm] = useState(false);
+  const [editingRequest, setEditingRequest] = useState<any>(null);
   const [showMaintenanceListModal, setShowMaintenanceListModal] = useState(false);
   const [maintenanceListTitle, setMaintenanceListTitle] = useState('');
   const [maintenanceListData, setMaintenanceListData] = useState<any[]>([]);
@@ -59,6 +64,11 @@ export function Maintenance() {
 
   const handlePriorityUpdate = async (id: string, newPriority: string) => {
     await updateMaintenanceRequest(id, { priority: newPriority });
+  };
+
+  const handleEdit = (request: any) => {
+    setEditingRequest(request);
+    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -135,13 +145,20 @@ export function Maintenance() {
     );
   }
 
+  const maintenanceBreadcrumb = generateStructuredData.breadcrumb([
+    { name: 'Home', url: 'https://www.lushlandsmanagement.com/' },
+    { name: 'Maintenance', url: 'https://www.lushlandsmanagement.com/maintenance' }
+  ]);
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Maintenance Requests</h1>
-          <p className="mt-2 text-gray-600">AI-powered priority management for property maintenance</p>
-        </div>
+    <>
+      <SEOHead config={seoConfig} structuredData={maintenanceBreadcrumb} />
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Maintenance Request Tracking</h1>
+            <p className="mt-2 text-gray-600">AI-powered priority management and work order tracking for property maintenance</p>
+          </div>
         <button
           onClick={() => setShowForm(true)}
           className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
@@ -365,13 +382,22 @@ export function Maintenance() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => handleDelete(request.id)}
-                        className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
-                        title="Delete request"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => handleEdit(request)}
+                          className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
+                          title="Edit request"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(request.id)}
+                          className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
+                          title="Delete request"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -381,9 +407,22 @@ export function Maintenance() {
         )}
       </div>
 
+      {/* AdSense Banner - After maintenance requests table */}
+      <AdSenseBanner 
+        slot="6789012345" 
+        format="auto"
+        className="max-w-3xl mx-auto"
+      />
+
       {/* Maintenance Form Modal */}
       {showForm && (
-        <MaintenanceForm onClose={() => setShowForm(false)} />
+        <MaintenanceForm
+          onClose={() => {
+            setShowForm(false);
+            setEditingRequest(null);
+          }}
+          editingRequest={editingRequest}
+        />
       )}
 
       {/* Maintenance Requests List Modal */}
@@ -394,6 +433,7 @@ export function Maintenance() {
           onClose={() => setShowMaintenanceListModal(false)}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 }
