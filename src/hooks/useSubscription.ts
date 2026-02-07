@@ -147,11 +147,13 @@ export function useSubscription() {
         throw new Error('User not authenticated');
       }
 
-      console.log('Calling cancel subscription function for user:', user.id);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('User not authenticated');
+
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cancel-subscription`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -234,8 +236,6 @@ export function useSubscription() {
 
   const isPremium = subscription?.subscription_type === 'premium' && subscription?.status === 'active';
   const isActive = subscription?.status === 'active';
-
-  console.log('Subscription status:', { isPremium, isActive, subscription, usageLimits });
 
   return {
     subscription,

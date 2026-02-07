@@ -13,7 +13,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { priceId = 'price_1QSuJhP5YrKoxWbOmVQQQQQQ' } = await req.json(); // Replace with your actual price ID
+    const { priceId } = await req.json();
+
+    const resolvedPriceId = priceId || Deno.env.get('STRIPE_PREMIUM_PRICE_ID');
+    if (!resolvedPriceId || typeof resolvedPriceId !== 'string' || !resolvedPriceId.startsWith('price_')) {
+      return new Response(
+        JSON.stringify({ error: 'Valid Stripe price ID is required. Configure STRIPE_PREMIUM_PRICE_ID.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     const authHeader = req.headers.get('Authorization')!;
     const supabase = createClient(
@@ -52,14 +60,13 @@ Deno.serve(async (req) => {
     // Create subscription
     const subscription = await stripe.subscriptions.create({
       customer: customer.id,
-      items: [{ price: priceId }],
+      items: [{ price: resolvedPriceId }],
       payment_behavior: 'default_incomplete',
       payment_settings: { save_default_payment_method: 'on_subscription' },
       expand: ['latest_invoice.payment_intent'],
     });
 
-    // Update user subscription in database
-    await supabase
+    const { error: upsertError } = await supabase
       .from('user_subscriptions')
       .upsert({
         user_id: user.id,
@@ -69,6 +76,10 @@ Deno.serve(async (req) => {
         current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
         current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
       });
+
+    if (upsertError) {
+      console.error('Error updating subscription in database:', upsertError);
+    }
 
     return new Response(
       JSON.stringify({

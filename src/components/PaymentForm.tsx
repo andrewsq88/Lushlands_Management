@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CreditCard, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useStripe } from './StripeProvider';
+import { supabase } from '../lib/supabase';
 
 interface PaymentFormProps {
   amount: number;
@@ -126,11 +127,13 @@ export function PaymentForm({
         throw new Error('Stripe failed to load');
       }
 
-      // Create payment intent
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('User not authenticated');
+
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-payment-intent`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

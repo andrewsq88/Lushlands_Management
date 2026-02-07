@@ -33,7 +33,7 @@ export function TenantForm({ tenant, onClose }: TenantFormProps) {
         property_id: tenant.property_id || '',
         lease_start: tenant.lease_start || '',
         lease_end: tenant.lease_end || '',
-        income: tenant.income || '',
+        income: tenant.income ?? '',
       });
     }
   }, [tenant]);

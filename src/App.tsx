@@ -54,11 +54,11 @@ function App() {
     // Track app initialization
     performanceMonitor.trackUserAction('app-initialization');
     
-    // Log performance report after 5 seconds
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       performanceMonitor.logPerformanceReport();
     }, 5000);
-    
+
+    return () => clearTimeout(timer);
   }, []);
 
   if (loading) {

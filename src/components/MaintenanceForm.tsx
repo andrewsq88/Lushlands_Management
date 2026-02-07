@@ -63,6 +63,7 @@ export function MaintenanceForm({ onClose }: MaintenanceFormProps) {
       const invalidIssues = issues.filter(issue => !issue.description.trim() || !issue.property_id);
       if (invalidIssues.length > 0) {
         setError('Please fill in description and property for all issues');
+        setLoading(false);
         return;
       }
 

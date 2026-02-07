@@ -9,7 +9,7 @@ interface PaymentRequestModalProps {
 }
 
 export function PaymentRequestModal({ onClose }: PaymentRequestModalProps) {
-  const { createPaymentRequest, addPayment } = usePayments();
+  const { createPaymentRequest, addPayment, updatePayment } = usePayments();
   const { tenants } = useTenants();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

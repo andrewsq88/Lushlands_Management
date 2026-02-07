@@ -38,14 +38,14 @@ export function useMaintenanceRequests() {
 
   const addMaintenanceRequest = async (request: Omit<MaintenanceRequestInsert, 'user_id' | 'priority'>) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('User not authenticated');
+      const user = session.user;
 
-      // Get AI priority analysis
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/maintenance-prioritization`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

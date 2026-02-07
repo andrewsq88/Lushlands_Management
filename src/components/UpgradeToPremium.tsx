@@ -19,26 +19,9 @@ export function UpgradeToPremium() {
       console.log('Calling createPremiumSubscription...');
       // Call the function that handles the direct redirect to Stripe
       await createPremiumSubscription();
-      console.log('Premium subscription creation initiated successfully');
-      console.log('User should be redirected to Stripe Payment Link');
-      
-      // Show user-friendly message about the redirect
-      alert('Redirecting to Stripe for premium upgrade!');
-      
-      // The page will redirect, so setLoading(false) is not strictly necessary here
     } catch (error) {
-      console.error('Premium upgrade failed:', error);
-      console.error('Error type:', typeof error);
-      console.error('Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      });
-      
-      // Display user-friendly error message
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred during upgrade.';
-      alert('Error: ' + errorMessage);
-      
-      setLoading(false); // Set loading to false if the redirect fails
+      console.error('Premium upgrade failed:', error instanceof Error ? error.message : String(error));
+      setLoading(false);
     }
   };
 

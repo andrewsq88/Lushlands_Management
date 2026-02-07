@@ -1,29 +1,65 @@
+import { createClient } from 'npm:@supabase/supabase-js@2';
+
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 200, headers: corsHeaders });
   }
 
   try {
-    const { text, voice = 'default' } = await req.json();
-    
-    if (!text) {
-      throw new Error('Text is required for voiceover generation');
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authorization header required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: 'User not authenticated' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { text } = await req.json();
+
+    if (!text || typeof text !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Text is required for voiceover generation' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (text.length > 5000) {
+      return new Response(
+        JSON.stringify({ error: 'Text must be 5000 characters or less' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const elevenLabsApiKey = Deno.env.get('ELEVEN_LABS_API_KEY');
     if (!elevenLabsApiKey) {
-      throw new Error('Eleven Labs API key not configured');
+      return new Response(
+        JSON.stringify({ error: 'Eleven Labs API key not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Use a default voice ID - replace with actual Eleven Labs voice ID
-    const voiceId = 'pNInz6obpgDQGcFmaJgB'; // Adam voice (default)
-    
+    const voiceId = 'pNInz6obpgDQGcFmaJgB';
+
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
       headers: {
@@ -44,18 +80,26 @@ Deno.serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Eleven Labs API error:', errorText);
-      throw new Error('Voiceover generation failed. Please try again.');
+      return new Response(
+        JSON.stringify({ error: 'Voiceover generation failed. Please try again.' }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const audioBuffer = await response.arrayBuffer();
-    
-    // Convert to base64 for easier handling
-    const base64Audio = btoa(String.fromCharCode(...new Uint8Array(audioBuffer)));
+
+    const bytes = new Uint8Array(audioBuffer);
+    const chunks: string[] = [];
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      chunks.push(String.fromCharCode(...bytes.slice(i, i + chunkSize)));
+    }
+    const base64Audio = btoa(chunks.join(''));
     const audioUrl = `data:audio/mpeg;base64,${base64Audio}`;
 
     return new Response(
       JSON.stringify({ audioUrl }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       },
@@ -63,8 +107,8 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Voiceover generation error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Voiceover generation failed' }),
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       },

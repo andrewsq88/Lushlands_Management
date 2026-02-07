@@ -29,10 +29,10 @@ export function PropertyForm({ property, onClose }: PropertyFormProps) {
         address: property.address || '',
         type: property.type || 'apartment',
         status: property.status || 'vacant',
-        rent_amount: property.rent_amount || '',
-        bedrooms: property.bedrooms || '',
-        bathrooms: property.bathrooms || '',
-        square_feet: property.square_feet || '',
+        rent_amount: property.rent_amount ?? '',
+        bedrooms: property.bedrooms ?? '',
+        bathrooms: property.bathrooms ?? '',
+        square_feet: property.square_feet ?? '',
         description: property.description || '',
       });
     }

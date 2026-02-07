@@ -21,10 +21,13 @@ export function usePremiumFeatures() {
     setError(null);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('User not authenticated');
+
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-voiceover`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -75,10 +78,13 @@ export function usePremiumFeatures() {
     setError(null);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('User not authenticated');
+
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-video`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -134,10 +140,13 @@ export function usePremiumFeatures() {
       const photoUrls = await uploadPropertyPhotos(photos);
       
       // Generate video using Tavus API with uploaded photos
+      const { data: { session: videoSession } } = await supabase.auth.getSession();
+      if (!videoSession) throw new Error('User not authenticated');
+
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-property-video`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${videoSession.access_token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

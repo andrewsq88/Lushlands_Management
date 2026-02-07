@@ -120,7 +120,8 @@ export function Payments() {
     return new Date(dateString).toLocaleDateString();
   };
 
-  const isOverdue = (dueDate: string, status: string) => {
+  const isOverdue = (dueDate: string | null, status: string) => {
+    if (!dueDate) return false;
     return status === 'pending' && new Date(dueDate) < new Date();
   };
 
