@@ -6,7 +6,6 @@ import { useTenants } from '../hooks/useTenants';
 
 interface MaintenanceFormProps {
   onClose: () => void;
-  editingRequest?: any;
 }
 
 interface MaintenanceIssue {
@@ -16,28 +15,21 @@ interface MaintenanceIssue {
   tenant_id: string;
 }
 
-export function MaintenanceForm({ onClose, editingRequest }: MaintenanceFormProps) {
-  const { addMaintenanceRequest, updateMaintenanceRequest } = useMaintenanceRequests();
+export function MaintenanceForm({ onClose }: MaintenanceFormProps) {
+  const { addMaintenanceRequest } = useMaintenanceRequests();
   const { properties } = useProperties();
   const { tenants } = useTenants();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const [issues, setIssues] = useState<MaintenanceIssue[]>(
-    editingRequest ? [{
+  const [issues, setIssues] = useState<MaintenanceIssue[]>([
+    {
       id: '1',
-      description: editingRequest.description || '',
-      property_id: editingRequest.property_id || '',
-      tenant_id: editingRequest.tenant_id || '',
-    }] : [
-      {
-        id: '1',
-        description: '',
-        property_id: '',
-        tenant_id: '',
-      }
-    ]
-  );
+      description: '',
+      property_id: '',
+      tenant_id: '',
+    }
+  ]);
 
   const addIssue = () => {
     const newIssue: MaintenanceIssue = {
@@ -74,33 +66,22 @@ export function MaintenanceForm({ onClose, editingRequest }: MaintenanceFormProp
         return;
       }
 
-      if (editingRequest) {
-        // Update existing request
-        const issue = issues[0];
-        await updateMaintenanceRequest(editingRequest.id, {
+      // Submit all issues
+      const promises = issues.map(issue => 
+        addMaintenanceRequest({
           description: issue.description,
           property_id: issue.property_id,
           tenant_id: issue.tenant_id || null,
-        });
-        onClose();
+        })
+      );
+
+      const results = await Promise.all(promises);
+      const hasErrors = results.some(result => result.error);
+
+      if (hasErrors) {
+        setError('Some maintenance requests failed to submit. Please try again.');
       } else {
-        // Submit all new issues
-        const promises = issues.map(issue =>
-          addMaintenanceRequest({
-            description: issue.description,
-            property_id: issue.property_id,
-            tenant_id: issue.tenant_id || null,
-          })
-        );
-
-        const results = await Promise.all(promises);
-        const hasErrors = results.some(result => result.error);
-
-        if (hasErrors) {
-          setError('Some maintenance requests failed to submit. Please try again.');
-        } else {
-          onClose();
-        }
+        onClose();
       }
     } catch (err) {
       setError('An unexpected error occurred');
@@ -114,11 +95,9 @@ export function MaintenanceForm({ onClose, editingRequest }: MaintenanceFormProp
       <div className="relative bg-white rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              {editingRequest ? 'Edit Maintenance Request' : `Submit Maintenance Request${issues.length > 1 ? 's' : ''}`}
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900">Submit Maintenance Request{issues.length > 1 ? 's' : ''}</h3>
             <p className="text-sm text-gray-600 mt-1">
-              {editingRequest ? 'Update the maintenance request details' : (issues.length === 1 ? 'Add a maintenance issue' : `Adding ${issues.length} maintenance issues`)}
+              {issues.length === 1 ? 'Add a maintenance issue' : `Adding ${issues.length} maintenance issues`}
             </p>
           </div>
           <button
@@ -210,17 +189,15 @@ export function MaintenanceForm({ onClose, editingRequest }: MaintenanceFormProp
               </div>
             ))}
 
-            {/* Add Another Issue Button - only show when creating new requests */}
-            {!editingRequest && (
-              <button
-                type="button"
-                onClick={addIssue}
-                className="w-full flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 transition-colors"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Another Issue
-              </button>
-            )}
+            {/* Add Another Issue Button */}
+            <button
+              type="button"
+              onClick={addIssue}
+              className="w-full flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 transition-colors"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Another Issue
+            </button>
           </div>
 
           <div className="mt-4">
@@ -247,7 +224,7 @@ export function MaintenanceForm({ onClose, editingRequest }: MaintenanceFormProp
               ) : (
                 <Wrench className="h-4 w-4 mr-2" />
               )}
-              {loading ? (editingRequest ? 'Updating...' : 'Submitting...') : (editingRequest ? 'Update Request' : `Submit ${issues.length} Request${issues.length > 1 ? 's' : ''}`)}
+              {loading ? 'Submitting...' : `Submit ${issues.length} Request${issues.length > 1 ? 's' : ''}`}
             </button>
           </div>
         </form>

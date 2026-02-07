@@ -2,12 +2,8 @@ import React from 'react';
 import { PiggyBank, AlertCircle } from 'lucide-react';
 import { useAffiliateLinks } from '../hooks/useAffiliateLinks';
 import { AffiliateCard } from './AffiliateCard';
-import { AdSenseBanner } from './AdSenseBanner';
-import { SEOHead } from './SEOHead';
-import { getPageSEO, generateStructuredData } from '../utils/seoConfig';
 
 export function DownPayment() {
-  const seoConfig = getPageSEO('downPayment');
   const { affiliateLinks, loading } = useAffiliateLinks();
 
   const mortgagePartners = affiliateLinks.filter(link => link.category === 'mortgage');
@@ -21,19 +17,12 @@ export function DownPayment() {
     );
   }
 
-  const downPaymentBreadcrumb = generateStructuredData.breadcrumb([
-    { name: 'Home', url: 'https://www.lushlandsmanagement.com/' },
-    { name: 'Down Payment', url: 'https://www.lushlandsmanagement.com/down-payment' }
-  ]);
-
   return (
-    <>
-      <SEOHead config={seoConfig} structuredData={downPaymentBreadcrumb} />
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Down Payment Calculator & Investment Planning</h1>
-          <p className="mt-2 text-gray-600">Calculate down payments and secure funding for your real estate investments</p>
-        </div>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Down Payment & Deposits</h1>
+        <p className="mt-2 text-gray-600">Secure funding and protection for your property investments</p>
+      </div>
 
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-xl p-8 text-white">
@@ -47,13 +36,6 @@ export function DownPayment() {
           the funding and protection they need.
         </p>
       </div>
-
-      {/* AdSense Banner - Between hero and content */}
-      <AdSenseBanner 
-        slot="5678901234" 
-        format="rectangle"
-        className="max-w-2xl mx-auto"
-      />
 
       {/* Investment Tips */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -120,7 +102,6 @@ export function DownPayment() {
           </div>
         </div>
       </div>
-      </div>
-    </>
+    </div>
   );
 }

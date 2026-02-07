@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, LogOut, User, Users, DollarSign, TrendingUp, PiggyBank, Wrench, CreditCard } from 'lucide-react';
+import { Home, MessageSquare, LogOut, User, Users, DollarSign, TrendingUp, PiggyBank, Wrench, CreditCard } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 interface LayoutProps {
@@ -28,6 +28,7 @@ export function Layout({ children }: LayoutProps) {
     { path: '/financing', icon: TrendingUp, label: 'Financing' },
     { path: '/down-payment', icon: PiggyBank, label: 'Down Payment' },
     { path: '/subscription', icon: CreditCard, label: 'Subscription' },
+    { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
   ];
 
   return (

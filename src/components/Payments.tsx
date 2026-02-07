@@ -1,19 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, DollarSign, Calendar, User, AlertCircle, CheckCircle, Clock, ExternalLink, Search, Filter } from 'lucide-react';
+import { Plus, DollarSign, Calendar, User, AlertCircle, CheckCircle, Clock, ExternalLink } from 'lucide-react';
 import { usePayments } from '../hooks/usePayments';
 import { PaymentRequestModal } from './PaymentRequestModal';
 import { PaymentListModal } from './PaymentListModal';
-import { AdSenseBanner } from './AdSenseBanner';
-import { SEOHead } from './SEOHead';
-import { getPageSEO, generateStructuredData } from '../utils/seoConfig';
 
 export function Payments() {
-  const seoConfig = getPageSEO('payments');
   const { payments, pendingPayments, paidPayments, loading, updatePayment } = usePayments();
   const [showModal, setShowModal] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [successMessage, setSuccessMessage] = useState('');
   const [showPaymentListModal, setShowPaymentListModal] = useState(false);
   const [paymentListTitle, setPaymentListTitle] = useState('');
@@ -42,20 +35,6 @@ export function Payments() {
       setTimeout(() => setSuccessMessage(''), 5000);
     }
   }, [updatePayment]);
-
-  // Filter payments based on search term and status filter
-  const filteredPayments = payments.filter(payment => {
-    const matchesSearch = payment.tenants?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         payment.tenants?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (payment.tenants?.properties?.address || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === 'all' || payment.type === typeFilter;
-    const matchesStatus = statusFilter === 'all' || 
-      (statusFilter === 'paid' && payment.status === 'paid') ||
-      (statusFilter === 'pending' && payment.status === 'pending' && !isOverdue(payment.due_date, payment.status)) ||
-      (statusFilter === 'overdue' && isOverdue(payment.due_date, payment.status));
-    
-    return matchesSearch && matchesType && matchesStatus;
-  });
 
   const handleStatsCardClick = (type: string) => {
     const now = new Date();
@@ -144,28 +123,21 @@ export function Payments() {
     );
   }
 
-  const paymentBreadcrumb = generateStructuredData.breadcrumb([
-    { name: 'Home', url: 'https://www.lushlandsmanagement.com/' },
-    { name: 'Payments', url: 'https://www.lushlandsmanagement.com/payments' }
-  ]);
-
   return (
-    <>
-      <SEOHead config={seoConfig} structuredData={paymentBreadcrumb} />
-      <div className="space-y-6">
-        {/* Success Message */}
-        {successMessage && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <CheckCircle className="h-5 w-5 text-green-600 mr-3" />
-              <p className="text-green-800">{successMessage}</p>
-            </div>
+    <div className="space-y-6">
+      {/* Success Message */}
+      {successMessage && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <CheckCircle className="h-5 w-5 text-green-600 mr-3" />
+            <p className="text-green-800">{successMessage}</p>
           </div>
-        )}
+        </div>
+      )}
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Online Rent Collection & Payments</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Payments</h1>
           <p className="mt-2 text-gray-600">Manage rent, mortgage, and maintenance payments with Stripe</p>
         </div>
         <button
@@ -175,52 +147,6 @@ export function Payments() {
           <Plus className="h-4 w-4 mr-2" />
           Send Payment Request
         </button>
-      </div>
-
-      {/* Search and Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search payments..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          
-          <div className="flex gap-4">
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
-              >
-                <option value="all">All Types</option>
-                <option value="rent">Rent</option>
-                <option value="mortgage">Mortgage</option>
-                <option value="maintenance">Maintenance</option>
-              </select>
-            </div>
-
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
-              >
-                <option value="all">All Status</option>
-                <option value="paid">Paid</option>
-                <option value="pending">Pending</option>
-                <option value="overdue">Overdue</option>
-              </select>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Stats Cards */}
@@ -294,13 +220,13 @@ export function Payments() {
         </button>
       </div>
 
-      {/* Stripe Integration Notice - Updated */}
-      <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-6">
+      {/* Stripe Integration Notice */}
+      <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
         <div className="flex items-center">
           <div className="p-2 bg-purple-100 rounded-lg">
             <ExternalLink className="h-5 w-5 text-purple-600" />
           </div>
-          <div className="ml-3 flex-1">
+          <div className="ml-3">
             <h3 className="text-sm font-medium text-purple-900">Secure Payments with Stripe</h3>
             <p className="text-sm text-purple-700 mt-1">
               All payments are processed securely through Stripe. Tenants can pay with credit cards, debit cards, or bank transfers.
@@ -309,40 +235,22 @@ export function Payments() {
         </div>
       </div>
 
-      {/* AdSense Banner - Between stats and payments list */}
-      <AdSenseBanner 
-        slot="7890123456" 
-        format="horizontal"
-        className="max-w-4xl mx-auto"
-      />
-
       {/* Payments List */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        {filteredPayments.length === 0 ? (
+        {payments.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
               <DollarSign className="h-6 w-6 text-gray-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {payments.length === 0 ? 'No payments yet' : 'No payments found'}
-            </h3>
-            <p className="text-gray-500 mb-4">
-              {payments.length === 0 
-                ? 'Start by sending your first payment request'
-                : searchTerm || statusFilter !== 'all' || typeFilter !== 'all'
-                  ? 'Try adjusting your search criteria or filters'
-                  : 'No payments to display'
-              }
-            </p>
-            {payments.length === 0 && (
-              <button
-                onClick={() => setShowModal(true)}
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Send Payment Request
-              </button>
-            )}
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No payments yet</h3>
+            <p className="text-gray-500 mb-4">Start by sending your first payment request</p>
+            <button
+              onClick={() => setShowModal(true)}
+              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Send Payment Request
+            </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -373,7 +281,7 @@ export function Payments() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredPayments.map((payment) => (
+                {payments.map((payment) => (
                   <tr 
                     key={payment.id} 
                     className={`hover:bg-gray-50 transition-colors ${
@@ -462,7 +370,6 @@ export function Payments() {
           onClose={() => setShowPaymentListModal(false)}
         />
       )}
-      </div>
-    </>
+    </div>
   );
 }

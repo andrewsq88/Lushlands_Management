@@ -4,12 +4,8 @@ import { useTenants } from '../hooks/useTenants';
 import { useSubscription } from '../hooks/useSubscription';
 import { usePremiumFeatures } from '../hooks/usePremiumFeatures';
 import { TenantForm } from './TenantForm';
-import { AdSenseBanner } from './AdSenseBanner';
-import { SEOHead } from './SEOHead';
-import { getPageSEO, generateStructuredData } from '../utils/seoConfig';
 
 export function Tenants() {
-  const seoConfig = getPageSEO('tenants');
   const { tenants, loading, deleteTenant, screenTenantAI, getScreeningResults } = useTenants();
   const { isPremium, getRemainingUsage } = useSubscription();
   const [showForm, setShowForm] = useState(false);
@@ -97,20 +93,13 @@ export function Tenants() {
     );
   }
 
-  const tenantBreadcrumb = generateStructuredData.breadcrumb([
-    { name: 'Home', url: 'https://www.lushlandsmanagement.com/' },
-    { name: 'Tenants', url: 'https://www.lushlandsmanagement.com/tenants' }
-  ]);
-
   return (
-    <>
-      <SEOHead config={seoConfig} structuredData={tenantBreadcrumb} />
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Tenant Management & AI Screening</h1>
-            <p className="mt-2 text-gray-600">Manage tenant relationships with AI-powered background screening and lease management</p>
-          </div>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Owners/Tenants</h1>
+          <p className="mt-2 text-gray-600">Manage your tenant relationships with AI-powered screening</p>
+        </div>
         <button
           onClick={() => {
             setEditingTenant(null);
@@ -288,13 +277,6 @@ export function Tenants() {
         )}
       </div>
 
-      {/* AdSense Banner - After tenants grid */}
-      <AdSenseBanner 
-        slot="3456789012" 
-        format="auto"
-        className="max-w-3xl mx-auto"
-      />
-
       {/* Tenant Form Modal */}
       {showForm && (
         <TenantForm
@@ -305,7 +287,6 @@ export function Tenants() {
           }}
         />
       )}
-      </div>
-    </>
+    </div>
   );
 }

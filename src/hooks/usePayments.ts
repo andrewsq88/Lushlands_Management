@@ -195,6 +195,7 @@ export function usePayments() {
     updatePayment,
     deletePayment,
     createPaymentRequest,
+    updatePayment,
     refetch: fetchPayments,
   };
 }
