@@ -6,18 +6,15 @@ import { usePremiumFeatures } from '../hooks/usePremiumFeatures';
 import { PropertyForm } from './PropertyForm';
 import { PropertyPhotosModal } from './PropertyPhotosModal';
 import { AdSenseBanner } from './AdSenseBanner';
-import { SEOHead } from './SEOHead';
-import { getPageSEO, generateStructuredData } from '../utils/seoConfig';
 
 export function Properties() {
-  const seoConfig = getPageSEO('properties');
-  const { properties, loading, error: propertiesError, deleteProperty, updateProperty, addProperty } = useProperties();
-  const { isPremium, getRemainingUsage, loading: subscriptionLoading } = useSubscription();
-  const {
-    generateVoiceover,
-    loading: aiLoading,
+  const { properties, loading, deleteProperty } = useProperties();
+  const { isPremium, getRemainingUsage } = useSubscription();
+  const { 
+    generateVoiceover, 
+    loading: aiLoading, 
     error: aiError,
-    clearError
+    clearError 
   } = usePremiumFeatures();
   const [showForm, setShowForm] = useState(false);
   const [editingProperty, setEditingProperty] = useState(null);
@@ -28,10 +25,9 @@ export function Properties() {
   const [generatedAudio, setGeneratedAudio] = useState<string | null>(null);
   const [audioText, setAudioText] = useState('');
 
-  const filteredProperties = (properties || []).filter(property => {
-    if (!property) return false;
-    const matchesSearch = (property.address || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (property.type || '').toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredProperties = properties.filter(property => {
+    const matchesSearch = property.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         property.type.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || property.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -50,14 +46,6 @@ export function Properties() {
   const handlePhotosClick = (property: any) => {
     setSelectedPropertyForPhotos(property);
     setShowPhotosModal(true);
-  };
-
-  const handleSaveProperty = async (propertyData: any, propertyId?: string) => {
-    if (propertyId) {
-      return await updateProperty(propertyId, propertyData);
-    } else {
-      return await addProperty(propertyData);
-    }
   };
 
   const handleGenerateAudio = async () => {
@@ -80,9 +68,9 @@ export function Properties() {
     return styles[status as keyof typeof styles] || 'bg-gray-100 text-gray-800';
   };
 
-  const audioRemaining = (typeof getRemainingUsage === 'function' && getRemainingUsage('voiceover')) || 0;
+  const audioRemaining = getRemainingUsage('voiceover');
 
-  if (loading || subscriptionLoading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -90,38 +78,13 @@ export function Properties() {
     );
   }
 
-  if (propertiesError) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center max-w-md">
-          <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Properties</h2>
-          <p className="text-gray-600 mb-4">{propertiesError}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Reload Page
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const propertyBreadcrumb = generateStructuredData.breadcrumb([
-    { name: 'Home', url: 'https://www.lushlandsmanagement.com/' },
-    { name: 'Properties', url: 'https://www.lushlandsmanagement.com/properties' }
-  ]);
-
   return (
-    <>
-      <SEOHead config={seoConfig} structuredData={propertyBreadcrumb} />
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Property Management</h1>
-            <p className="mt-2 text-gray-600">Manage your entire rental property portfolio with AI-powered tracking and analytics</p>
-          </div>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Properties</h1>
+          <p className="mt-2 text-gray-600">Manage your property portfolio with AI-powered features</p>
+        </div>
         <button
           onClick={() => {
             setEditingProperty(null);
@@ -386,7 +349,6 @@ export function Properties() {
             setShowForm(false);
             setEditingProperty(null);
           }}
-          onSave={handleSaveProperty}
         />
       )}
 
@@ -400,7 +362,6 @@ export function Properties() {
           }}
         />
       )}
-      </div>
-    </>
+    </div>
   );
 }

@@ -1,16 +1,14 @@
 import React from 'react';
-import { ExternalLink, Building, Shield, AlertTriangle, Wrench, Edit2, Trash2 } from 'lucide-react';
+import { ExternalLink, Building, Shield, AlertTriangle, Wrench } from 'lucide-react';
 
 interface AffiliateCardProps {
   name: string;
   description: string;
   url: string;
   category: string;
-  onEdit?: () => void;
-  onDelete?: () => void;
 }
 
-export function AffiliateCard({ name, description, url, category, onEdit, onDelete }: AffiliateCardProps) {
+export function AffiliateCard({ name, description, url, category }: AffiliateCardProps) {
   const getIcon = () => {
     switch (category) {
       case 'mortgage':
@@ -52,38 +50,7 @@ export function AffiliateCard({ name, description, url, category, onEdit, onDele
             <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
           </div>
         </div>
-        {(onEdit || onDelete) ? (
-          <div className="flex items-center gap-2">
-            {onEdit && (
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onEdit();
-                }}
-                className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-                title="Edit partner"
-              >
-                <Edit2 className="h-4 w-4" />
-              </button>
-            )}
-            {onDelete && (
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onDelete();
-                }}
-                className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
-                title="Delete partner"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-        ) : (
-          <ExternalLink className="h-4 w-4 text-gray-400" />
-        )}
+        <ExternalLink className="h-4 w-4 text-gray-400" />
       </div>
 
       <p className="text-gray-600 mb-4 leading-relaxed">{description}</p>

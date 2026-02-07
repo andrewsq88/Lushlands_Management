@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, Users, Home, AlertCircle, X, MapPin, Bed, Bath, Square, AlertTriangle, Clock, Wrench, Plus } from 'lucide-react';
+import { Building2, Users, Home, AlertCircle, X, MapPin, Bed, Bath, Square, AlertTriangle, Clock, Wrench } from 'lucide-react';
 import { useProperties } from '../hooks/useProperties';
 import { useMaintenanceRequests } from '../hooks/useMaintenanceRequests';
 import { useProperties as usePropertiesUpdate } from '../hooks/useProperties';
@@ -9,11 +9,8 @@ import { MaintenanceRequestsListModal } from './MaintenanceRequestsListModal';
 import { MaintenanceDetailsModal } from './MaintenanceDetailsModal';
 import { AffiliateCard } from './AffiliateCard';
 import { AdSenseBanner } from './AdSenseBanner';
-import { SEOHead } from './SEOHead';
-import { getPageSEO, generateStructuredData } from '../utils/seoConfig';
 
 export function Dashboard() {
-  const seoConfig = getPageSEO('home');
   const { properties, stats, loading, updateProperty } = useProperties();
   const { highPriorityRequests, openRequests, loading: maintenanceLoading, updateMaintenanceRequest } = useMaintenanceRequests();
   const [selectedProperty, setSelectedProperty] = useState(null);
@@ -26,19 +23,8 @@ export function Dashboard() {
   const [propertyListData, setPropertyListData] = useState([]);
   const [maintenanceListTitle, setMaintenanceListTitle] = useState('');
   const [maintenanceListData, setMaintenanceListData] = useState([]);
-  const [showAddPartnerModal, setShowAddPartnerModal] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editingPartnerId, setEditingPartnerId] = useState<string | null>(null);
-  const [partnerFormData, setPartnerFormData] = useState({
-    businessName: '',
-    phone: '',
-    email: '',
-    websiteUrl: '',
-    address: '',
-    serviceTypes: '',
-    userRating: 5,
-    userNotes: ''
-  });
+  const [selectedCountry, setSelectedCountry] = useState('USA');
+  const [selectedCity, setSelectedCity] = useState('New York');
 
   const recentProperties = properties.slice(0, 5);
 
@@ -70,56 +56,114 @@ export function Dashboard() {
       category: 'maintenance_partner',
       city: 'Los Angeles',
       country: 'USA'
+    },
+    {
+      id: '4',
+      name: 'West Coast Repairs',
+      description: 'Reliable maintenance and emergency repair services throughout the LA metro area.',
+      url: '#',
+      category: 'maintenance_partner',
+      city: 'Los Angeles',
+      country: 'USA'
+    },
+    {
+      id: '5',
+      name: 'Windy City Maintenance',
+      description: 'Comprehensive property maintenance services for Chicago landlords and property managers.',
+      url: '#',
+      category: 'maintenance_partner',
+      city: 'Chicago',
+      country: 'USA'
+    },
+    {
+      id: '6',
+      name: 'Chicago Property Solutions',
+      description: 'Expert maintenance, plumbing, electrical, and HVAC services for rental properties.',
+      url: '#',
+      category: 'maintenance_partner',
+      city: 'Chicago',
+      country: 'USA'
+    },
+    {
+      id: '7',
+      name: 'Miami Property Maintenance',
+      description: 'Tropical climate specialists providing maintenance services for South Florida properties.',
+      url: '#',
+      category: 'maintenance_partner',
+      city: 'Miami',
+      country: 'USA'
+    },
+    {
+      id: '8',
+      name: 'South Beach Repairs',
+      description: 'Fast response maintenance and repair services for Miami-Dade County properties.',
+      url: '#',
+      category: 'maintenance_partner',
+      city: 'Miami',
+      country: 'USA'
+    },
+    {
+      id: '9',
+      name: 'Toronto Property Services',
+      description: 'Professional property maintenance and repair services for the Greater Toronto Area.',
+      url: '#',
+      category: 'maintenance_partner',
+      city: 'Toronto',
+      country: 'Canada'
+    },
+    {
+      id: '10',
+      name: 'Vancouver Maintenance Co',
+      description: 'Reliable maintenance solutions for residential properties in Vancouver and surrounding areas.',
+      url: '#',
+      category: 'maintenance_partner',
+      city: 'Vancouver',
+      country: 'Canada'
+    },
+    {
+      id: '11',
+      name: 'London Property Maintenance',
+      description: 'Expert property maintenance services for landlords and property managers in London.',
+      url: '#',
+      category: 'maintenance_partner',
+      city: 'London',
+      country: 'UK'
+    },
+    {
+      id: '12',
+      name: 'Manchester Property Care',
+      description: 'Comprehensive maintenance and repair services for properties in Manchester and the North West.',
+      url: '#',
+      category: 'maintenance_partner',
+      city: 'Manchester',
+      country: 'UK'
     }
   ];
 
-  // Show all maintenance partners
-  const filteredPartners = mockMaintenancePartners;
+  // Get unique countries for dropdown
+  const availableCountries = [...new Set(mockMaintenancePartners.map(partner => partner.country))];
+  
+  // Get unique cities for selected country
+  const availableCities = [...new Set(
+    mockMaintenancePartners
+      .filter(partner => partner.country === selectedCountry)
+      .map(partner => partner.city)
+  )];
+  
+  // Filter partners by selected city
+  const filteredPartners = mockMaintenancePartners.filter(
+    partner => partner.country === selectedCountry && partner.city === selectedCity
+  );
 
-  const handleAddPartner = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // TODO: Integrate with Supabase to save partner submission
-    if (isEditMode) {
-      console.log('Updating partner:', editingPartnerId, partnerFormData);
-    } else {
-      console.log('Adding new partner:', partnerFormData);
-    }
-    setShowAddPartnerModal(false);
-    setIsEditMode(false);
-    setEditingPartnerId(null);
-    setPartnerFormData({
-      businessName: '',
-      phone: '',
-      email: '',
-      websiteUrl: '',
-      address: '',
-      serviceTypes: '',
-      userRating: 5,
-      userNotes: ''
-    });
-  };
-
-  const handleEditPartner = (partner: any) => {
-    setIsEditMode(true);
-    setEditingPartnerId(partner.id);
-    setPartnerFormData({
-      businessName: partner.name,
-      phone: partner.phone || '',
-      email: partner.email || '',
-      websiteUrl: partner.url,
-      address: partner.address || '',
-      serviceTypes: partner.serviceTypes || '',
-      userRating: partner.rating || 5,
-      userNotes: partner.notes || ''
-    });
-    setShowAddPartnerModal(true);
-  };
-
-  const handleDeletePartner = (partnerId: string) => {
-    if (confirm('Are you sure you want to delete this maintenance partner?')) {
-      // TODO: Integrate with Supabase to delete partner
-      console.log('Deleting partner:', partnerId);
-    }
+  // Handle country change and reset city to first available
+  const handleCountryChange = (newCountry: string) => {
+    setSelectedCountry(newCountry);
+    const citiesInCountry = [...new Set(
+      mockMaintenancePartners
+        .filter(partner => partner.country === newCountry)
+        .map(partner => partner.city)
+    )];
+    setSelectedCity(citiesInCountry[0] || '');
   };
 
   const getStatusBadge = (status: string) => {
@@ -193,19 +237,12 @@ export function Dashboard() {
     );
   }
 
-  const dashboardBreadcrumb = generateStructuredData.breadcrumb([
-    { name: 'Home', url: 'https://www.lushlandsmanagement.com/' },
-    { name: 'Dashboard', url: 'https://www.lushlandsmanagement.com/' }
-  ]);
-
   return (
-    <>
-      <SEOHead config={seoConfig} structuredData={dashboardBreadcrumb} />
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Property Management Dashboard</h1>
-          <p className="mt-2 text-gray-600">Comprehensive overview of your property portfolio with AI-powered insights and analytics</p>
-        </div>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <p className="mt-2 text-gray-600">Overview of your property portfolio with AI insights</p>
+      </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -432,15 +469,39 @@ export function Dashboard() {
             </div>
           </div>
           <div className="p-6">
-            {/* Add Partner Button */}
+            {/* Country and City Selection */}
             <div className="mb-6">
-              <button
-                onClick={() => setShowAddPartnerModal(true)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2"
+              <label htmlFor="country-select" className="block text-sm font-medium text-gray-700 mb-2">
+                Select Your Country
+              </label>
+              <select
+                id="country-select"
+                value={selectedCountry}
+                onChange={(e) => handleCountryChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 mb-4"
               >
-                <Plus className="h-5 w-5" />
-                Add Maintenance Partner
-              </button>
+                {availableCountries.map((country) => (
+                  <option key={country} value={country}>
+                    {country}
+                  </option>
+                ))}
+              </select>
+              
+              <label htmlFor="city-select" className="block text-sm font-medium text-gray-700 mb-2">
+                Select Your City
+              </label>
+              <select
+                id="city-select"
+                value={selectedCity}
+                onChange={(e) => setSelectedCity(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+              >
+                {availableCities.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Partners List */}
@@ -452,8 +513,6 @@ export function Dashboard() {
                     description={partner.description}
                     url={partner.url}
                     category={partner.category}
-                    onEdit={() => handleEditPartner(partner)}
-                    onDelete={() => handleDeletePartner(partner.id)}
                   />
                 </div>
               ))}
@@ -464,7 +523,7 @@ export function Dashboard() {
                 <Wrench className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-500">No partners available</p>
                 <p className="text-sm text-gray-400 mt-1">
-                  Add your first maintenance partner to get started
+                  Check back soon for maintenance companies in {selectedCity}, {selectedCountry}
                 </p>
               </div>
             )}
@@ -505,173 +564,6 @@ export function Dashboard() {
           onClose={() => setShowMaintenanceListModal(false)}
         />
       )}
-
-      {/* Add Partner Modal */}
-      {showAddPartnerModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {isEditMode ? 'Edit Maintenance Partner' : 'Add Maintenance Partner'}
-              </h2>
-              <button
-                onClick={() => {
-                  setShowAddPartnerModal(false);
-                  setIsEditMode(false);
-                  setEditingPartnerId(null);
-                }}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="h-5 w-5 text-gray-500" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddPartner} className="p-6 space-y-4">
-              <div>
-                <label htmlFor="businessName" className="block text-sm font-medium text-gray-700 mb-1">
-                  Business Name *
-                </label>
-                <input
-                  type="text"
-                  id="businessName"
-                  required
-                  value={partnerFormData.businessName}
-                  onChange={(e) => setPartnerFormData({ ...partnerFormData, businessName: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                  placeholder="ABC Plumbing Services"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone
-                  </label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    value={partnerFormData.phone}
-                    onChange={(e) => setPartnerFormData({ ...partnerFormData, phone: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                    placeholder="(555) 123-4567"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    value={partnerFormData.email}
-                    onChange={(e) => setPartnerFormData({ ...partnerFormData, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                    placeholder="contact@example.com"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="websiteUrl" className="block text-sm font-medium text-gray-700 mb-1">
-                  Website URL
-                </label>
-                <input
-                  type="url"
-                  id="websiteUrl"
-                  value={partnerFormData.websiteUrl}
-                  onChange={(e) => setPartnerFormData({ ...partnerFormData, websiteUrl: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                  placeholder="https://example.com"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
-                  Address *
-                </label>
-                <input
-                  type="text"
-                  id="address"
-                  required
-                  value={partnerFormData.address}
-                  onChange={(e) => setPartnerFormData({ ...partnerFormData, address: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                  placeholder="123 Main St, City, State ZIP"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="serviceTypes" className="block text-sm font-medium text-gray-700 mb-1">
-                  Service Types * <span className="text-gray-500 font-normal">(comma-separated)</span>
-                </label>
-                <input
-                  type="text"
-                  id="serviceTypes"
-                  required
-                  value={partnerFormData.serviceTypes}
-                  onChange={(e) => setPartnerFormData({ ...partnerFormData, serviceTypes: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                  placeholder="Plumbing, HVAC, Electrical"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="userRating" className="block text-sm font-medium text-gray-700 mb-1">
-                  Your Rating
-                </label>
-                <select
-                  id="userRating"
-                  value={partnerFormData.userRating}
-                  onChange={(e) => setPartnerFormData({ ...partnerFormData, userRating: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                >
-                  <option value={5}>5 - Excellent</option>
-                  <option value={4}>4 - Good</option>
-                  <option value={3}>3 - Average</option>
-                  <option value={2}>2 - Below Average</option>
-                  <option value={1}>1 - Poor</option>
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="userNotes" className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes
-                </label>
-                <textarea
-                  id="userNotes"
-                  rows={3}
-                  value={partnerFormData.userNotes}
-                  onChange={(e) => setPartnerFormData({ ...partnerFormData, userNotes: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                  placeholder="Share your experience with this partner..."
-                />
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAddPartnerModal(false);
-                    setIsEditMode(false);
-                    setEditingPartnerId(null);
-                  }}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2"
-                >
-                  {isEditMode ? 'Update Partner' : 'Submit Partner'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-      </div>
-    </>
+    </div>
   );
 }

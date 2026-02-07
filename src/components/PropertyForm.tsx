@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { useProperties } from '../hooks/useProperties';
 
 interface PropertyFormProps {
   property?: any;
   onClose: () => void;
-  onSave: (data: any, propertyId?: string) => Promise<{ error: any }>;
 }
 
-export function PropertyForm({ property, onClose, onSave }: PropertyFormProps) {
+export function PropertyForm({ property, onClose }: PropertyFormProps) {
+  const { addProperty, updateProperty } = useProperties();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
@@ -54,10 +55,12 @@ export function PropertyForm({ property, onClose, onSave }: PropertyFormProps) {
         description: formData.description || null,
       };
 
-      const { error } = await onSave(propertyData, property?.id);
+      const { error } = property
+        ? await updateProperty(property.id, propertyData)
+        : await addProperty(propertyData);
 
       if (error) {
-        setError(error.message || 'Failed to save property');
+        setError(error.message);
       } else {
         onClose();
       }
