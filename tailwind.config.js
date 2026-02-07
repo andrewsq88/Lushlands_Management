@@ -5,7 +5,7 @@ export default {
     extend: {
       fontFamily: {
         'sans': ['Pontano Sans', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif'],
-        'pontiac': ['Pontano Sans', 'sans-serif'],
+        'pontano': ['Pontano Sans', 'sans-serif'],
         'playfair': ['Playfair Display', 'serif'],
       },
     },

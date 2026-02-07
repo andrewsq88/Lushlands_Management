@@ -12,13 +12,32 @@ export const validateDomain = () => {
     console.warn('Unexpected domain detected:', currentDomain);
   }
   
-  // Check SSL status
+  // Check SSL status - only redirect in production
   if (window.location.protocol !== 'https:' && currentDomain !== 'localhost') {
-    console.error('SSL not enabled - redirecting to HTTPS');
-    window.location.href = `https://${currentDomain}${window.location.pathname}${window.location.search}`;
-    return false;
+    // Check if we're in development mode
+    const isDevelopment = import.meta.env.MODE === 'development';
+
+    if (!isDevelopment) {
+      // Prevent infinite redirect loops by tracking redirect attempts
+      const redirectKey = 'https_redirect_attempts';
+      const redirectAttempts = parseInt(sessionStorage.getItem(redirectKey) || '0', 10);
+
+      if (redirectAttempts < 3) {
+        console.error('SSL not enabled - redirecting to HTTPS');
+        sessionStorage.setItem(redirectKey, String(redirectAttempts + 1));
+        window.location.href = `https://${currentDomain}${window.location.pathname}${window.location.search}`;
+        return false;
+      } else {
+        console.error('HTTPS redirect failed after 3 attempts. SSL may be misconfigured.');
+        sessionStorage.removeItem(redirectKey);
+        // Don't redirect to avoid infinite loop - let the page load with warning
+      }
+    }
+  } else {
+    // Clear redirect counter on successful HTTPS load
+    sessionStorage.removeItem('https_redirect_attempts');
   }
-  
+
   return true;
 };
 
