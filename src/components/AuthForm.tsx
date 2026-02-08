@@ -77,15 +77,15 @@ export function AuthForm() {
               className="h-16 w-16 object-contain"
             />
           </div>
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
+          <h2 className="mt-6 text-3xl font-bold text-gray-800">
             {isSignUp ? 'Create your account' : 'Sign in to'}
           </h2>
           <div className="mt-2">
-            <span className="text-2xl font-bold text-gray-900">
+            <span className="text-2xl font-bold bg-gradient-to-r from-[#40E0D0] to-[#48D1CC] bg-clip-text text-transparent">
               LushLands Management
             </span>
           </div>
-          <p className="mt-2 text-sm text-gray-900">
+          <p className="mt-2 text-sm text-gray-700">
             {isSignUp ? 'Start managing your properties today' : 'Welcome back to your property dashboard'}
           </p>
         </div>
@@ -112,7 +112,7 @@ export function AuthForm() {
                       required
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#40E0D0] focus:border-[#40E0D0]"
                       placeholder="John"
                     />
                   </div>
@@ -127,7 +127,7 @@ export function AuthForm() {
                       required
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#40E0D0] focus:border-[#40E0D0]"
                       placeholder="Doe"
                     />
                   </div>
@@ -145,7 +145,7 @@ export function AuthForm() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#40E0D0] focus:border-[#40E0D0]"
                   placeholder="Enter your email"
                 />
               </div>
@@ -162,7 +162,7 @@ export function AuthForm() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#40E0D0] focus:border-[#40E0D0]"
                     placeholder="Enter your password"
                   />
                   <button
@@ -180,7 +180,7 @@ export function AuthForm() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-[#FF8C42] to-[#FFB380] hover:from-[#FF7F35] hover:to-[#FFA366] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#40E0D0] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
                 {loading ? 'Please wait...' : (isSignUp ? 'Sign up' : 'Sign in')}
               </button>
@@ -190,7 +190,7 @@ export function AuthForm() {
               <button
                 type="button"
                 onClick={() => setIsSignUp(!isSignUp)}
-                className="text-sm text-gray-900 hover:text-gray-700 font-medium"
+                className="text-sm text-[#40E0D0] hover:text-[#48D1CC] font-medium transition-colors"
               >
                 {isSignUp 
                   ? 'Already have an account? Sign in' 
