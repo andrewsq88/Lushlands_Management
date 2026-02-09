@@ -2,39 +2,39 @@
 export const validateDomain = () => {
   const currentDomain = window.location.hostname;
   const expectedDomains = ['lushlandsmanagement.com', 'www.lushlandsmanagement.com', 'localhost'];
-  
-  console.log('Current domain:', currentDomain);
-  console.log('Protocol:', window.location.protocol);
-  console.log('Full URL:', window.location.href);
-  
-  // Check if we're on the correct domain
-  if (!expectedDomains.includes(currentDomain) && !currentDomain.includes('netlify.app')) {
+
+  const isKnownHost =
+    expectedDomains.includes(currentDomain) ||
+    currentDomain.includes('netlify.app') ||
+    currentDomain.includes('vercel.app') ||
+    currentDomain.includes('bolt.new') ||
+    currentDomain.endsWith('.webcontainer.io') ||
+    currentDomain === '127.0.0.1';
+
+  if (!isKnownHost) {
     console.warn('Unexpected domain detected:', currentDomain);
   }
   
-  // Check SSL status - only redirect in production
-  if (window.location.protocol !== 'https:' && currentDomain !== 'localhost') {
-    // Check if we're in development mode
-    const isDevelopment = import.meta.env.MODE === 'development';
+  const skipHttpsRedirect =
+    currentDomain === 'localhost' ||
+    currentDomain === '127.0.0.1' ||
+    currentDomain.includes('vercel.app') ||
+    currentDomain.includes('bolt.new') ||
+    currentDomain.endsWith('.webcontainer.io') ||
+    import.meta.env.MODE === 'development';
 
-    if (!isDevelopment) {
-      // Prevent infinite redirect loops by tracking redirect attempts
-      const redirectKey = 'https_redirect_attempts';
-      const redirectAttempts = parseInt(sessionStorage.getItem(redirectKey) || '0', 10);
+  if (window.location.protocol !== 'https:' && !skipHttpsRedirect) {
+    const redirectKey = 'https_redirect_attempts';
+    const redirectAttempts = parseInt(sessionStorage.getItem(redirectKey) || '0', 10);
 
-      if (redirectAttempts < 3) {
-        console.error('SSL not enabled - redirecting to HTTPS');
-        sessionStorage.setItem(redirectKey, String(redirectAttempts + 1));
-        window.location.href = `https://${currentDomain}${window.location.pathname}${window.location.search}`;
-        return false;
-      } else {
-        console.error('HTTPS redirect failed after 3 attempts. SSL may be misconfigured.');
-        sessionStorage.removeItem(redirectKey);
-        // Don't redirect to avoid infinite loop - let the page load with warning
-      }
+    if (redirectAttempts < 3) {
+      sessionStorage.setItem(redirectKey, String(redirectAttempts + 1));
+      window.location.href = `https://${currentDomain}${window.location.pathname}${window.location.search}`;
+      return false;
+    } else {
+      sessionStorage.removeItem(redirectKey);
     }
   } else {
-    // Clear redirect counter on successful HTTPS load
     sessionStorage.removeItem('https_redirect_attempts');
   }
 
