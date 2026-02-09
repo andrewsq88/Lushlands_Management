@@ -42,7 +42,7 @@ export function Layout({ children }: LayoutProps) {
                 alt="LushLands Management Logo" 
                 className="h-10 w-10 object-contain flex-shrink-0"
               />
-              <span className="ml-3 text-xl font-bold whitespace-nowrap" style={{ color: '#B8860B' }}>
+              <span className="ml-3 text-xl font-bold text-transparent bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text whitespace-nowrap">
                 LushLands
               </span>
             </div>
@@ -55,8 +55,8 @@ export function Layout({ children }: LayoutProps) {
                   to={path}
                   className={`flex items-center px-1 py-1 rounded-md text-xs font-medium transition-colors ${
                     isActive(path)
-                      ? 'bg-amber-50 text-amber-700'
-                      : 'text-gray-600 hover:text-amber-700 hover:bg-amber-50'
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50'
                   }`}
                 >
                   <Icon className="h-3 w-3 mr-1" />
@@ -91,8 +91,8 @@ export function Layout({ children }: LayoutProps) {
                 to={path}
                 className={`flex items-center px-3 py-2 rounded-md text-base font-medium transition-colors ${
                   isActive(path)
-                    ? 'bg-amber-50 text-amber-700'
-                    : 'text-gray-600 hover:text-amber-700 hover:bg-amber-50'
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50'
                 }`}
               >
                 <Icon className="h-5 w-5 mr-3" />
