@@ -132,7 +132,7 @@ export function useTenants() {
         .from('screening_results')
         .insert([{
           tenant_id: tenant.id,
-          user_id: user.id,
+          user_id: session.user.id,
           score: aiResult.score,
           recommendation: aiResult.recommendation,
         }])
