@@ -4,8 +4,18 @@ import { useMaintenanceRequests } from '../hooks/useMaintenanceRequests';
 import { useProperties } from '../hooks/useProperties';
 import { useTenants } from '../hooks/useTenants';
 
+interface MaintenanceRequest {
+  id: string;
+  description: string;
+  property_id: string;
+  tenant_id: string | null;
+  status: string;
+  priority: string;
+}
+
 interface MaintenanceFormProps {
   onClose: () => void;
+  request?: MaintenanceRequest | null;
 }
 
 interface MaintenanceIssue {
@@ -15,21 +25,30 @@ interface MaintenanceIssue {
   tenant_id: string;
 }
 
-export function MaintenanceForm({ onClose }: MaintenanceFormProps) {
-  const { addMaintenanceRequest } = useMaintenanceRequests();
+export function MaintenanceForm({ onClose, request }: MaintenanceFormProps) {
+  const { addMaintenanceRequest, updateMaintenanceRequest } = useMaintenanceRequests();
   const { properties } = useProperties();
   const { tenants } = useTenants();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
-  const [issues, setIssues] = useState<MaintenanceIssue[]>([
-    {
-      id: '1',
-      description: '',
-      property_id: '',
-      tenant_id: '',
-    }
-  ]);
+
+  const isEditing = !!request;
+
+  const [issues, setIssues] = useState<MaintenanceIssue[]>(
+    isEditing
+      ? [{
+          id: '1',
+          description: request.description,
+          property_id: request.property_id,
+          tenant_id: request.tenant_id || '',
+        }]
+      : [{
+          id: '1',
+          description: '',
+          property_id: '',
+          tenant_id: '',
+        }]
+  );
 
   const addIssue = () => {
     const newIssue: MaintenanceIssue = {
@@ -48,7 +67,7 @@ export function MaintenanceForm({ onClose }: MaintenanceFormProps) {
   };
 
   const updateIssue = (id: string, field: keyof Omit<MaintenanceIssue, 'id'>, value: string) => {
-    setIssues(issues.map(issue => 
+    setIssues(issues.map(issue =>
       issue.id === id ? { ...issue, [field]: value } : issue
     ));
   };
@@ -59,7 +78,6 @@ export function MaintenanceForm({ onClose }: MaintenanceFormProps) {
     setError('');
 
     try {
-      // Validate all issues
       const invalidIssues = issues.filter(issue => !issue.description.trim() || !issue.property_id);
       if (invalidIssues.length > 0) {
         setError('Please fill in description and property for all issues');
@@ -67,22 +85,35 @@ export function MaintenanceForm({ onClose }: MaintenanceFormProps) {
         return;
       }
 
-      // Submit all issues
-      const promises = issues.map(issue => 
-        addMaintenanceRequest({
+      if (isEditing) {
+        const issue = issues[0];
+        const { error: updateError } = await updateMaintenanceRequest(request.id, {
           description: issue.description,
           property_id: issue.property_id,
           tenant_id: issue.tenant_id || null,
-        })
-      );
-
-      const results = await Promise.all(promises);
-      const hasErrors = results.some(result => result.error);
-
-      if (hasErrors) {
-        setError('Some maintenance requests failed to submit. Please try again.');
+        });
+        if (updateError) {
+          setError('Failed to update the maintenance request. Please try again.');
+        } else {
+          onClose();
+        }
       } else {
-        onClose();
+        const promises = issues.map(issue =>
+          addMaintenanceRequest({
+            description: issue.description,
+            property_id: issue.property_id,
+            tenant_id: issue.tenant_id || null,
+          })
+        );
+
+        const results = await Promise.all(promises);
+        const hasErrors = results.some(result => result.error);
+
+        if (hasErrors) {
+          setError('Some maintenance requests failed to submit. Please try again.');
+        } else {
+          onClose();
+        }
       }
     } catch (err) {
       setError('An unexpected error occurred');
@@ -96,9 +127,16 @@ export function MaintenanceForm({ onClose }: MaintenanceFormProps) {
       <div className="relative bg-white rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">Submit Maintenance Request{issues.length > 1 ? 's' : ''}</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              {isEditing ? 'Edit Maintenance Request' : `Submit Maintenance Request${issues.length > 1 ? 's' : ''}`}
+            </h3>
             <p className="text-sm text-gray-600 mt-1">
-              {issues.length === 1 ? 'Add a maintenance issue' : `Adding ${issues.length} maintenance issues`}
+              {isEditing
+                ? 'Update the details of this maintenance request'
+                : issues.length === 1
+                  ? 'Add a maintenance issue'
+                  : `Adding ${issues.length} maintenance issues`
+              }
             </p>
           </div>
           <button
@@ -121,9 +159,9 @@ export function MaintenanceForm({ onClose }: MaintenanceFormProps) {
               <div key={issue.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="text-sm font-medium text-gray-900">
-                    Issue #{index + 1}
+                    {isEditing ? 'Request Details' : `Issue #${index + 1}`}
                   </h4>
-                  {issues.length > 1 && (
+                  {!isEditing && issues.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeIssue(issue.id)}
@@ -190,22 +228,25 @@ export function MaintenanceForm({ onClose }: MaintenanceFormProps) {
               </div>
             ))}
 
-            {/* Add Another Issue Button */}
-            <button
-              type="button"
-              onClick={addIssue}
-              className="w-full flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 transition-colors"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Another Issue
-            </button>
+            {!isEditing && (
+              <button
+                type="button"
+                onClick={addIssue}
+                className="w-full flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 transition-colors"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Another Issue
+              </button>
+            )}
           </div>
 
-          <div className="mt-4">
-            <p className="text-xs text-gray-500 text-center">
-              AI will automatically assign priority based on your descriptions
-            </p>
-          </div>
+          {!isEditing && (
+            <div className="mt-4">
+              <p className="text-xs text-gray-500 text-center">
+                AI will automatically assign priority based on your descriptions
+              </p>
+            </div>
+          )}
 
           <div className="flex space-x-3 pt-4">
             <button
@@ -225,7 +266,10 @@ export function MaintenanceForm({ onClose }: MaintenanceFormProps) {
               ) : (
                 <Wrench className="h-4 w-4 mr-2" />
               )}
-              {loading ? 'Submitting...' : `Submit ${issues.length} Request${issues.length > 1 ? 's' : ''}`}
+              {loading
+                ? isEditing ? 'Saving...' : 'Submitting...'
+                : isEditing ? 'Save Changes' : `Submit ${issues.length} Request${issues.length > 1 ? 's' : ''}`
+              }
             </button>
           </div>
         </form>

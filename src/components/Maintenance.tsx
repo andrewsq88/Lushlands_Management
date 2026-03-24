@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Search, Filter, AlertTriangle, Clock, CheckCircle, User, MapPin, Calendar, ArrowUpDown } from 'lucide-react';
+import { Plus, CreditCard as Edit2, Trash2, Search, Filter, AlertTriangle, Clock, CheckCircle, User, MapPin, Calendar, ArrowUpDown } from 'lucide-react';
 import { useMaintenanceRequests } from '../hooks/useMaintenanceRequests';
 import { MaintenanceForm } from './MaintenanceForm';
 import { MaintenanceRequestsListModal } from './MaintenanceRequestsListModal';
@@ -8,6 +8,7 @@ import { AdSenseBanner } from './AdSenseBanner';
 export function Maintenance() {
   const { maintenanceRequests, highPriorityRequests, openRequests, loading, updateMaintenanceRequest, deleteMaintenanceRequest } = useMaintenanceRequests();
   const [showForm, setShowForm] = useState(false);
+  const [editingRequest, setEditingRequest] = useState<any>(null);
   const [showMaintenanceListModal, setShowMaintenanceListModal] = useState(false);
   const [maintenanceListTitle, setMaintenanceListTitle] = useState('');
   const [maintenanceListData, setMaintenanceListData] = useState<any[]>([]);
@@ -60,6 +61,11 @@ export function Maintenance() {
 
   const handlePriorityUpdate = async (id: string, newPriority: string) => {
     await updateMaintenanceRequest(id, { priority: newPriority });
+  };
+
+  const handleEdit = (request: any) => {
+    setEditingRequest(request);
+    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -144,7 +150,7 @@ export function Maintenance() {
           <p className="mt-2 text-gray-600">AI-powered priority management for property maintenance</p>
         </div>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => { setEditingRequest(null); setShowForm(true); }}
           className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -259,7 +265,7 @@ export function Maintenance() {
             </p>
             {!searchTerm && statusFilter === 'all' && priorityFilter === 'all' && (
               <button
-                onClick={() => setShowForm(true)}
+                onClick={() => { setEditingRequest(null); setShowForm(true); }}
                 className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -366,13 +372,22 @@ export function Maintenance() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => handleDelete(request.id)}
-                        className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
-                        title="Delete request"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => handleEdit(request)}
+                          className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
+                          title="Edit request"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(request.id)}
+                          className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
+                          title="Delete request"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -391,7 +406,13 @@ export function Maintenance() {
 
       {/* Maintenance Form Modal */}
       {showForm && (
-        <MaintenanceForm onClose={() => setShowForm(false)} />
+        <MaintenanceForm
+          request={editingRequest}
+          onClose={() => {
+            setShowForm(false);
+            setEditingRequest(null);
+          }}
+        />
       )}
 
       {/* Maintenance Requests List Modal */}
