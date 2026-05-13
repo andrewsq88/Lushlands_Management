@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Users, Home, AlertCircle, X, MapPin, Bed, Bath, Square, AlertTriangle, Clock, Wrench, CreditCard as Edit2 } from 'lucide-react';
+import { Building2, Users, Home, AlertCircle, X, MapPin, Bed, Bath, Square, AlertTriangle, Clock, Wrench } from 'lucide-react';
 import { useProperties } from '../hooks/useProperties';
 import { useMaintenanceRequests } from '../hooks/useMaintenanceRequests';
 import { useMaintenancePartners } from '../hooks/useMaintenancePartners';
@@ -8,7 +8,6 @@ import { PropertyListModal } from './PropertyListModal';
 import { MaintenanceRequestsListModal } from './MaintenanceRequestsListModal';
 import { MaintenanceDetailsModal } from './MaintenanceDetailsModal';
 import { AffiliateCard } from './AffiliateCard';
-import { MaintenanceForm } from './MaintenanceForm';
 import { AdSenseBanner } from './AdSenseBanner';
 
 export function Dashboard() {
@@ -21,8 +20,6 @@ export function Dashboard() {
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
   const [showPropertyListModal, setShowPropertyListModal] = useState(false);
   const [showMaintenanceListModal, setShowMaintenanceListModal] = useState(false);
-  const [editingRequest, setEditingRequest] = useState<any>(null);
-  const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
   const [propertyListTitle, setPropertyListTitle] = useState('');
   const [propertyListData, setPropertyListData] = useState([]);
   const [maintenanceListTitle, setMaintenanceListTitle] = useState('');
@@ -95,12 +92,6 @@ export function Dashboard() {
   const handlePropertyClick = (property: any) => {
     setSelectedProperty(property);
     setShowDetailsModal(true);
-  };
-
-  const handleMaintenanceEdit = (e: React.MouseEvent, request: any) => {
-    e.stopPropagation();
-    setEditingRequest(request);
-    setShowMaintenanceForm(true);
   };
 
   const handleMaintenanceClick = (request: any) => {
@@ -354,24 +345,16 @@ export function Dashboard() {
                         {request.properties?.address}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 ml-2" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={(e) => handleMaintenanceEdit(e, request)}
-                        className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-100 transition-colors"
-                        title="Edit request"
-                      >
-                        <Edit2 className="h-3.5 w-3.5" />
-                      </button>
-                      <select
-                        value={request.priority}
-                        onChange={(e) => updateMaintenanceRequest(request.id, { priority: e.target.value })}
-                        className={`text-xs font-medium rounded-full border px-2 py-1 ${getPriorityBadge(request.priority)} focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      >
-                        <option value="High">High</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Low">Low</option>
-                      </select>
-                    </div>
+                    <select
+                      value={request.priority}
+                      onChange={(e) => updateMaintenanceRequest(request.id, { priority: e.target.value })}
+                      onClick={(e) => e.stopPropagation()}
+                      className={`text-xs font-medium rounded-full border px-2 py-1 ${getPriorityBadge(request.priority)} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    >
+                      <option value="High">High</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Low">Low</option>
+                    </select>
                   </button>
                 ))}
               </div>
@@ -492,17 +475,6 @@ export function Dashboard() {
           title={maintenanceListTitle}
           maintenanceRequests={maintenanceListData}
           onClose={() => setShowMaintenanceListModal(false)}
-        />
-      )}
-
-      {/* Maintenance Edit Form Modal */}
-      {showMaintenanceForm && (
-        <MaintenanceForm
-          request={editingRequest}
-          onClose={() => {
-            setShowMaintenanceForm(false);
-            setEditingRequest(null);
-          }}
         />
       )}
     </div>
