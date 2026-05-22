@@ -1,19 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Building2, Users, Home, AlertCircle, X, MapPin, Bed, Bath, Square, AlertTriangle, Clock, Wrench } from 'lucide-react';
+import React, { useState } from 'react';
+import { Building2, Users, Home, X, AlertTriangle, Clock, Wrench, Plus, CheckCircle } from 'lucide-react';
 import { useProperties } from '../hooks/useProperties';
 import { useMaintenanceRequests } from '../hooks/useMaintenanceRequests';
-import { useMaintenancePartners } from '../hooks/useMaintenancePartners';
 import { PropertyDetailsModal } from './PropertyDetailsModal';
 import { PropertyListModal } from './PropertyListModal';
 import { MaintenanceRequestsListModal } from './MaintenanceRequestsListModal';
 import { MaintenanceDetailsModal } from './MaintenanceDetailsModal';
-import { AffiliateCard } from './AffiliateCard';
-import { AdSenseBanner } from './AdSenseBanner';
+import { supabase } from '../lib/supabase';
 
 export function Dashboard() {
   const { properties, stats, loading, updateProperty } = useProperties();
   const { highPriorityRequests, openRequests, loading: maintenanceLoading, updateMaintenanceRequest } = useMaintenanceRequests();
-  const { partners: allPartners, loading: partnersLoading } = useMaintenancePartners();
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedMaintenanceRequest, setSelectedMaintenanceRequest] = useState(null);
@@ -24,52 +21,49 @@ export function Dashboard() {
   const [propertyListData, setPropertyListData] = useState([]);
   const [maintenanceListTitle, setMaintenanceListTitle] = useState('');
   const [maintenanceListData, setMaintenanceListData] = useState([]);
-  const [selectedCountry, setSelectedCountry] = useState('');
-  const [selectedCity, setSelectedCity] = useState('');
+  const [showPartnerForm, setShowPartnerForm] = useState(false);
+  const [partnerName, setPartnerName] = useState('');
+  const [partnerUrl, setPartnerUrl] = useState('');
+  const [partnerSubmitting, setPartnerSubmitting] = useState(false);
+  const [partnerSuccess, setPartnerSuccess] = useState(false);
+  const [partnerError, setPartnerError] = useState('');
 
   const recentProperties = properties.slice(0, 5);
 
-  // Get unique countries for dropdown
-  const availableCountries = [...new Set(allPartners.map(partner => partner.country))].sort();
+  const handlePartnerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!partnerName.trim()) return;
 
-  // Get unique cities for selected country
-  const availableCities = [...new Set(
-    allPartners
-      .filter(partner => partner.country === selectedCountry)
-      .map(partner => partner.city)
-  )].sort();
+    setPartnerSubmitting(true);
+    setPartnerError('');
 
-  // Filter partners by selected city
-  const filteredPartners = allPartners.filter(
-    partner => partner.country === selectedCountry && partner.city === selectedCity
-  );
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
 
-  // Handle country change and reset city to first available
-  const handleCountryChange = (newCountry: string) => {
-    setSelectedCountry(newCountry);
-    const citiesInCountry = [...new Set(
-      allPartners
-        .filter(partner => partner.country === newCountry)
-        .map(partner => partner.city)
-    )].sort();
-    setSelectedCity(citiesInCountry[0] || '');
-  };
+      const { error } = await supabase
+        .from('partner_submissions')
+        .insert([{
+          submitted_by: user.id,
+          business_name: partnerName.trim(),
+          website_url: partnerUrl.trim() || null,
+        }]);
 
-  // Set initial country and city when partners load
-  useEffect(() => {
-    if (allPartners.length > 0 && selectedCountry === '') {
-      const countries = [...new Set(allPartners.map(p => p.country))].sort();
-      if (countries.length > 0) {
-        const firstCountry = countries.includes('USA') ? 'USA' : countries[0];
-        setSelectedCountry(firstCountry);
-        const cities = [...new Set(allPartners.filter(p => p.country === firstCountry).map(p => p.city))].sort();
-        if (cities.length > 0) {
-          const firstCity = cities.includes('New York') ? 'New York' : cities[0];
-          setSelectedCity(firstCity);
-        }
-      }
+      if (error) throw error;
+
+      setPartnerSuccess(true);
+      setPartnerName('');
+      setPartnerUrl('');
+      setTimeout(() => {
+        setPartnerSuccess(false);
+        setShowPartnerForm(false);
+      }, 2500);
+    } catch (err) {
+      setPartnerError(err instanceof Error ? err.message : 'Failed to submit partner');
+    } finally {
+      setPartnerSubmitting(false);
     }
-  }, [allPartners, selectedCountry]);
+  };
 
   const getStatusBadge = (status: string) => {
     const styles = {
@@ -214,13 +208,6 @@ export function Dashboard() {
         </button>
       </div>
 
-      {/* AdSense Banner - Strategic placement after stats */}
-      <AdSenseBanner 
-        slot="1234567890" 
-        format="horizontal"
-        className="max-w-4xl mx-auto"
-      />
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Recent Properties */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
@@ -362,83 +349,95 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Regional Maintenance Partners */}
+        {/* Maintenance Partners - Submit a Partner */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Maintenance Partners</h2>
-                <p className="text-sm text-gray-600 mt-1">Trusted local maintenance companies</p>
+                <p className="text-sm text-gray-600 mt-1">Suggest a trusted maintenance company</p>
               </div>
-              <Wrench className="h-6 w-6 text-cyan-600" />
+              <button
+                onClick={() => setShowPartnerForm(!showPartnerForm)}
+                className="p-2 rounded-lg bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 transition-colors group"
+                title="Submit a partner"
+              >
+                {showPartnerForm ? (
+                  <X className="h-5 w-5 text-cyan-600 group-hover:text-cyan-700" />
+                ) : (
+                  <Wrench className="h-5 w-5 text-cyan-600 group-hover:text-cyan-700" />
+                )}
+              </button>
             </div>
           </div>
           <div className="p-6">
-            {/* Country and City Selection */}
-            <div className="mb-6">
-              <label htmlFor="country-select" className="block text-sm font-medium text-gray-700 mb-2">
-                Select Your Country
-              </label>
-              <select
-                id="country-select"
-                value={selectedCountry}
-                onChange={(e) => handleCountryChange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 mb-4"
-              >
-                {availableCountries.map((country) => (
-                  <option key={country} value={country}>
-                    {country}
-                  </option>
-                ))}
-              </select>
-              
-              <label htmlFor="city-select" className="block text-sm font-medium text-gray-700 mb-2">
-                Select Your City
-              </label>
-              <select
-                id="city-select"
-                value={selectedCity}
-                onChange={(e) => setSelectedCity(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-              >
-                {availableCities.map((city) => (
-                  <option key={city} value={city}>
-                    {city}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Partners List */}
-            {partnersLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-600"></div>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-4">
-                  {filteredPartners.map((partner) => (
-                    <div key={partner.id} className="transform scale-95">
-                      <AffiliateCard
-                        name={partner.business_name}
-                        description={partner.description || ''}
-                        url={partner.website_url || '#'}
-                        category={partner.business_type}
+            {showPartnerForm ? (
+              <form onSubmit={handlePartnerSubmit} className="space-y-4">
+                {partnerSuccess ? (
+                  <div className="flex flex-col items-center py-6">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3">
+                      <CheckCircle className="h-6 w-6 text-green-600" />
+                    </div>
+                    <p className="text-green-800 font-medium">Partner submitted!</p>
+                    <p className="text-sm text-green-600 mt-1">We'll review and add them shortly.</p>
+                  </div>
+                ) : (
+                  <>
+                    {partnerError && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                        <p className="text-sm text-red-600">{partnerError}</p>
+                      </div>
+                    )}
+                    <div>
+                      <label htmlFor="partner-name" className="block text-sm font-medium text-gray-700 mb-1">
+                        Company Name *
+                      </label>
+                      <input
+                        id="partner-name"
+                        type="text"
+                        required
+                        value={partnerName}
+                        onChange={(e) => setPartnerName(e.target.value)}
+                        placeholder="e.g. ABC Plumbing Services"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                       />
                     </div>
-                  ))}
-                </div>
-
-                {filteredPartners.length === 0 && (
-                  <div className="text-center py-8">
-                    <Wrench className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">No partners available</p>
-                    <p className="text-sm text-gray-400 mt-1">
-                      Check back soon for maintenance companies in {selectedCity}, {selectedCountry}
-                    </p>
-                  </div>
+                    <div>
+                      <label htmlFor="partner-url" className="block text-sm font-medium text-gray-700 mb-1">
+                        Website URL
+                      </label>
+                      <input
+                        id="partner-url"
+                        type="url"
+                        value={partnerUrl}
+                        onChange={(e) => setPartnerUrl(e.target.value)}
+                        placeholder="https://www.example.com"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={partnerSubmitting || !partnerName.trim()}
+                      className="w-full flex items-center justify-center px-4 py-2.5 bg-cyan-600 text-white text-sm font-medium rounded-lg hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {partnerSubmitting ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      ) : (
+                        <Plus className="h-4 w-4 mr-2" />
+                      )}
+                      {partnerSubmitting ? 'Submitting...' : 'Submit Partner'}
+                    </button>
+                  </>
                 )}
-              </>
+              </form>
+            ) : (
+              <div className="text-center py-8">
+                <Wrench className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 mb-2">Know a great maintenance company?</p>
+                <p className="text-sm text-gray-400">
+                  Click the wrench icon above to suggest a partner for our network.
+                </p>
+              </div>
             )}
           </div>
         </div>
