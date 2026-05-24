@@ -104,6 +104,8 @@ export function useTenants() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('User not authenticated');
 
+      const user = session.user;
+
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tenant-screening`, {
         method: 'POST',
         headers: {
@@ -141,12 +143,12 @@ export function useTenants() {
 
       if (error) throw error;
 
-      return { 
+      return {
         data: {
           ...aiResult,
           id: data.id
-        }, 
-        error: null 
+        },
+        error: null
       };
     } catch (error) {
       console.error('Error screening tenant:', error);
