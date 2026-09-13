@@ -210,7 +210,6 @@ export function AuthForm() {
         />
         <SponsoredLink />
       </div>
-      </div>
     </div>
   );
 }
