@@ -41,5 +41,46 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <!-- Adsterra Social Bar 31825904. Kept inert until a public page sets data-adsterra-public. -->
+    <script data-cfasync="false" type="text/plain" id="adsterra-social-bar-source" src="https://bauval.org/14/f144d09c01f5e03a182871af116a8566"></script>
+    <script>
+      (function () {
+        var SRC = "https://bauval.org/14/f144d09c01f5e03a182871af116a8566";
+        var LIVE_ID = "adsterra-social-bar";
+        var snapshot = null;
+        function isPublic() {
+          return document.body && document.body.getAttribute("data-adsterra-public") === "true";
+        }
+        function sync() {
+          var live = document.getElementById(LIVE_ID);
+          if (isPublic()) {
+            if (live) return;
+            snapshot = Array.prototype.slice.call(document.body.children);
+            var script = document.createElement("script");
+            script.id = LIVE_ID;
+            script.setAttribute("data-cfasync", "false");
+            script.src = SRC;
+            document.body.appendChild(script);
+            return;
+          }
+          if (live) live.remove();
+          if (snapshot) {
+            Array.prototype.slice.call(document.body.children).forEach(function (el) {
+              if (snapshot.indexOf(el) === -1 && el.id !== "root") el.remove();
+            });
+            snapshot = null;
+          }
+        }
+        function watch() {
+          sync();
+          new MutationObserver(sync).observe(document.body, {
+            attributes: true,
+            attributeFilter: ["data-adsterra-public"]
+          });
+        }
+        if (document.body) watch();
+        else document.addEventListener("DOMContentLoaded", watch);
+      })();
+    </script>
   </body>
 </html>

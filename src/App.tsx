@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { StripeProvider } from './components/StripeProvider';
 import { Layout } from './components/Layout';
@@ -12,8 +12,19 @@ import { Payments } from './components/Payments';
 import { Financing } from './components/Financing';
 import { DownPayment } from './components/DownPayment';
 import { SubscriptionManager } from './components/SubscriptionManager';
+import { PublicLanding } from './components/PublicLanding';
 import { validateDomain, checkSSLCertificate, validateEnvironmentVariables, logDNSInfo } from './utils/domainValidation';
 import { performanceMonitor } from './utils/performanceMonitor';
+
+function DashboardLayout() {
+  return (
+    <StripeProvider>
+      <Layout>
+        <Outlet />
+      </Layout>
+    </StripeProvider>
+  );
+}
 
 function App() {
   const { user, loading } = useAuth();
@@ -72,28 +83,38 @@ function App() {
     );
   }
 
-  if (!user) {
-    return <AuthForm />;
-  }
-
   return (
-    <StripeProvider>
-      <Router>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/properties" element={<Properties />} />
-            <Route path="/tenants" element={<Tenants />} />
-            <Route path="/maintenance" element={<Maintenance />} />
-            <Route path="/payments" element={<Payments />} />
-            <Route path="/financing" element={<Financing />} />
-            <Route path="/down-payment" element={<DownPayment />} />
-            <Route path="/subscription" element={<SubscriptionManager />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Layout>
-      </Router>
-    </StripeProvider>
+    <Router>
+      <Routes>
+        <Route path="/welcome" element={<PublicLanding />} />
+        {user ? (
+          <>
+            <Route path="/auth" element={<Navigate to="/" replace />} />
+            <Route path="/login" element={<Navigate to="/" replace />} />
+            <Route path="/signup" element={<Navigate to="/" replace />} />
+            <Route element={<DashboardLayout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/properties" element={<Properties />} />
+              <Route path="/tenants" element={<Tenants />} />
+              <Route path="/maintenance" element={<Maintenance />} />
+              <Route path="/payments" element={<Payments />} />
+              <Route path="/financing" element={<Financing />} />
+              <Route path="/down-payment" element={<DownPayment />} />
+              <Route path="/subscription" element={<SubscriptionManager />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+          </>
+        ) : (
+          <>
+            <Route path="/" element={<PublicLanding />} />
+            <Route path="/auth" element={<AuthForm />} />
+            <Route path="/login" element={<AuthForm />} />
+            <Route path="/signup" element={<AuthForm />} />
+            <Route path="*" element={<AuthForm />} />
+          </>
+        )}
+      </Routes>
+    </Router>
   );
 }
 
