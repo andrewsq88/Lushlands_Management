@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { AdSenseBanner } from './AdSenseBanner';
 import { SponsoredLink } from './SponsoredLink';
 
 export function AuthForm() {
@@ -202,12 +201,7 @@ export function AuthForm() {
             </div>
           </div>
         </form>
-      <div className="max-w-md w-full mx-auto px-4 pb-8 space-y-3">
-        <AdSenseBanner
-          slot="0000000000"
-          format="horizontal"
-          style={{ minHeight: 90, minWidth: 320 }}
-        />
+      <div className="max-w-md w-full mx-auto px-4 pb-8">
         <SponsoredLink />
       </div>
       </div>

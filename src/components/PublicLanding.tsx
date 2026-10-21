@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { Building2, CreditCard, Wrench } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { AdSenseBanner } from './AdSenseBanner';
 import { AdsterraLeaderboard, AdsterraRectangle } from './AdsterraBanner';
 import { AdsterraNative } from './AdsterraNative';
 
@@ -53,15 +52,8 @@ export function PublicLanding() {
           </p>
         </section>
 
-        <div className="my-8">
-          <AdSenseBanner
-            slot="1122334455"
-            format="horizontal"
-            style={{ minHeight: 90, minWidth: 320 }}
-          />
-          <div className="mt-4 flex justify-center">
-            <AdsterraLeaderboard />
-          </div>
+        <div className="my-8 flex justify-center">
+          <AdsterraLeaderboard />
         </div>
 
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -88,13 +80,7 @@ export function PublicLanding() {
           </article>
         </section>
 
-        <div className="my-8 flex flex-col items-center gap-6">
-          <AdSenseBanner
-            slot="5566778899"
-            format="rectangle"
-            className="max-w-2xl"
-            style={{ minHeight: 250, width: 300 }}
-          />
+        <div className="my-8 flex justify-center">
           <AdsterraRectangle />
         </div>
 

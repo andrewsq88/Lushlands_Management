@@ -4,7 +4,6 @@ import { useTenants } from '../hooks/useTenants';
 import { useSubscription } from '../hooks/useSubscription';
 import { usePremiumFeatures } from '../hooks/usePremiumFeatures';
 import { TenantForm } from './TenantForm';
-import { AdSenseBanner } from './AdSenseBanner';
 
 export function Tenants() {
   const { tenants, loading, deleteTenant, screenTenantAI, getScreeningResults } = useTenants();
@@ -277,13 +276,6 @@ export function Tenants() {
           </div>
         )}
       </div>
-
-      {/* AdSense Banner - After tenants grid */}
-      <AdSenseBanner 
-        slot="3456789012" 
-        format="auto"
-        className="max-w-3xl mx-auto"
-      />
 
       {/* Tenant Form Modal */}
       {showForm && (
