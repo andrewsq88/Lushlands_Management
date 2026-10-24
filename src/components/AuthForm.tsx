@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { SponsoredLink } from './SponsoredLink';
 
 export function AuthForm() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -201,9 +200,6 @@ export function AuthForm() {
             </div>
           </div>
         </form>
-      <div className="max-w-md w-full mx-auto px-4 pb-8">
-        <SponsoredLink />
-      </div>
       </div>
     </div>
   );
