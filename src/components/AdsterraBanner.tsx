@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /** 728x90 banner, zone 31825906. */
 const ADSTERRA_LEADERBOARD = {
@@ -16,6 +16,20 @@ const ADSTERRA_RECTANGLE = {
 
 const DESKTOP_LEADERBOARD_QUERY = '(min-width: 1024px)';
 
+interface AtOptions {
+  key: string;
+  format: 'iframe';
+  height: number;
+  width: number;
+  params: Record<string, never>;
+}
+
+declare global {
+  interface Window {
+    atOptions?: AtOptions;
+  }
+}
+
 interface AdsterraBannerProps {
   adKey: string;
   width: number;
@@ -23,25 +37,75 @@ interface AdsterraBannerProps {
   className?: string;
 }
 
-function bannerDocument(adKey: string, width: number, height: number): string {
-  const options = {
-    key: adKey,
-    format: 'iframe',
-    height,
-    width,
-    params: {},
-  };
-  const invokeSrc = `https://bauval.org/22/${encodeURIComponent(adKey)}`;
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0;overflow:hidden;background:transparent;}</style></head><body><script>atOptions=${JSON.stringify(options)};</script><script src=${JSON.stringify(invokeSrc)}></script></body></html>`;
+/**
+ * Two banners share window.atOptions. Mount the next unit only after the
+ * previous invoke.js has loaded so the second assignment cannot win the race.
+ */
+let bannerQueue: Promise<void> = Promise.resolve();
+
+function enqueueBanner(task: () => Promise<void>): void {
+  const run = bannerQueue.then(task, task);
+  bannerQueue = run.then(
+    () => undefined,
+    () => undefined,
+  );
+}
+
+function mountBanner(container: HTMLElement, options: AtOptions): Promise<void> {
+  window.atOptions = options;
+
+  const inline = document.createElement('script');
+  inline.type = 'text/javascript';
+  inline.text = `atOptions = ${JSON.stringify(options)};`;
+  container.appendChild(inline);
+
+  return new Promise((resolve) => {
+    const invoke = document.createElement('script');
+    invoke.type = 'text/javascript';
+    invoke.async = false;
+    invoke.src = `https://bauval.org/22/${encodeURIComponent(options.key)}`;
+    const timer = window.setTimeout(resolve, 10000);
+    const done = () => {
+      window.clearTimeout(timer);
+      resolve();
+    };
+    invoke.addEventListener('load', done, { once: true });
+    invoke.addEventListener('error', done, { once: true });
+    container.appendChild(invoke);
+  });
 }
 
 /**
- * One atOptions banner in its own fixed-size iframe so several units can share a page
- * without overwriting the global atOptions object.
+ * Official Adsterra banner placement: atOptions plus invoke.js inside a
+ * fixed-size box. Adsterra creates the creative iframe. The slot size stays
+ * reserved so the page does not jump when the creative arrives.
  */
 export function AdsterraBanner({ adKey, width, height, className = '' }: AdsterraBannerProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    let cancelled = false;
+    const options: AtOptions = {
+      key: adKey,
+      format: 'iframe',
+      height,
+      width,
+      params: {},
+    };
+    enqueueBanner(async () => {
+      if (cancelled || !container.isConnected) return;
+      await mountBanner(container, options);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [adKey, width, height]);
+
   return (
     <div
+      ref={containerRef}
       className={className}
       style={{
         width,
@@ -51,24 +115,7 @@ export function AdsterraBanner({ adKey, width, height, className = '' }: Adsterr
         overflow: 'hidden',
         flexShrink: 0,
       }}
-    >
-      <iframe
-        title={`Advertisement ${width} by ${height}`}
-        srcDoc={bannerDocument(adKey, width, height)}
-        width={width}
-        height={height}
-        scrolling="no"
-        sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-forms"
-        referrerPolicy="strict-origin-when-cross-origin"
-        style={{
-          width,
-          height,
-          border: 0,
-          display: 'block',
-          overflow: 'hidden',
-        }}
-      />
-    </div>
+    />
   );
 }
 
