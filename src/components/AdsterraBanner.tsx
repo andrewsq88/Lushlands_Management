@@ -1,20 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
+import { LOWER_SLOT_ROOT_MARGIN, observeNearViewport, whenPageLoaded } from './adSlotTiming';
 
-/** 728x90 banner, zone 31825906. */
-const ADSTERRA_LEADERBOARD = {
-  key: '1fe49dab56617f56988a2eb60575c323',
-  width: 728,
-  height: 90,
-} as const;
-
-/** 300x250 banner, zone 31825905. */
+/** 300x250 banner, zone 31825905. The 728x90 unit is not used. */
 const ADSTERRA_RECTANGLE = {
   key: '2eb00fce858b24f88558dc5e57ad2542',
   width: 300,
   height: 250,
+  slot: '300x250-below-signup',
 } as const;
 
-const DESKTOP_LEADERBOARD_QUERY = '(min-width: 1024px)';
+const LABEL_HEIGHT = 16;
+const LABEL_GAP = 8;
 
 interface AtOptions {
   key: string;
@@ -34,12 +30,15 @@ interface AdsterraBannerProps {
   adKey: string;
   width: number;
   height: number;
+  slot: string;
   className?: string;
+  /** Lower slots wait until they are near the viewport. The box is reserved either way. */
+  lazy?: boolean;
 }
 
 /**
- * Two banners share window.atOptions. Mount the next unit only after the
- * previous invoke.js has loaded so the second assignment cannot win the race.
+ * Two banners would share window.atOptions. Mount through one queue so a
+ * later assignment cannot win a race. This page only mounts the 300x250.
  */
 let bannerQueue: Promise<void> = Promise.resolve();
 
@@ -77,86 +76,96 @@ function mountBanner(container: HTMLElement, options: AtOptions): Promise<void> 
 
 /**
  * Official Adsterra banner placement: atOptions plus invoke.js inside a
- * fixed-size box. Adsterra creates the creative iframe. The slot size stays
- * reserved so the page does not jump when the creative arrives.
+ * fixed-size box. The slot height includes the label and is reserved before
+ * the script runs, so the creative cannot shift the page or cover a control
+ * above it.
  */
-export function AdsterraBanner({ adKey, width, height, className = '' }: AdsterraBannerProps) {
+export function AdsterraBanner({
+  adKey,
+  width,
+  height,
+  slot,
+  className = '',
+  lazy = false,
+}: AdsterraBannerProps) {
+  const slotRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const slotEl = slotRef.current;
     const container = containerRef.current;
-    if (!container) return;
+    if (!slotEl || !container) return;
+
     let cancelled = false;
-    const options: AtOptions = {
-      key: adKey,
-      format: 'iframe',
-      height,
-      width,
-      params: {},
-    };
-    enqueueBanner(async () => {
+    let stopObserve = () => {};
+
+    const mount = () => {
       if (cancelled || !container.isConnected) return;
-      await mountBanner(container, options);
+      if (container.dataset.adMounted === '1') return;
+      container.dataset.adMounted = '1';
+      const options: AtOptions = {
+        key: adKey,
+        format: 'iframe',
+        height,
+        width,
+        params: {},
+      };
+      enqueueBanner(async () => {
+        if (cancelled || !container.isConnected) return;
+        await mountBanner(container, options);
+      });
+    };
+
+    void whenPageLoaded().then(() => {
+      if (cancelled || !container.isConnected) return;
+      if (!lazy) {
+        mount();
+        return;
+      }
+      stopObserve = observeNearViewport(slotEl, LOWER_SLOT_ROOT_MARGIN, mount);
     });
+
     return () => {
       cancelled = true;
+      stopObserve();
     };
-  }, [adKey, width, height]);
+  }, [adKey, width, height, lazy]);
+
+  const reservedHeight = height + LABEL_HEIGHT + LABEL_GAP;
 
   return (
     <div
-      ref={containerRef}
+      ref={slotRef}
+      data-ad-slot={slot}
       className={className}
       style={{
         width,
-        height,
-        marginLeft: 'auto',
-        marginRight: 'auto',
+        height: reservedHeight,
+        minHeight: reservedHeight,
         overflow: 'hidden',
         flexShrink: 0,
+        position: 'static',
       }}
-    />
+    >
+      <div
+        className="text-xs text-gray-500 text-center"
+        style={{ height: LABEL_HEIGHT, marginBottom: LABEL_GAP, lineHeight: `${LABEL_HEIGHT}px` }}
+      >
+        Advertisement
+      </div>
+      <div ref={containerRef} style={{ width, height, overflow: 'hidden' }} />
+    </div>
   );
 }
 
-function useDesktopLeaderboard(): boolean {
-  const [matches, setMatches] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return window.matchMedia(DESKTOP_LEADERBOARD_QUERY).matches;
-  });
-
-  useEffect(() => {
-    const media = window.matchMedia(DESKTOP_LEADERBOARD_QUERY);
-    const update = () => setMatches(media.matches);
-    update();
-    media.addEventListener('change', update);
-    return () => media.removeEventListener('change', update);
-  }, []);
-
-  return matches;
-}
-
-/** Fixed 300x250 rectangle, zone 31825905. */
+/** Fixed 300x250 rectangle, zone 31825905. One slot, placed under the first sign-up control. */
 export function AdsterraRectangle({ className = '' }: { className?: string }) {
   return (
     <AdsterraBanner
       adKey={ADSTERRA_RECTANGLE.key}
       width={ADSTERRA_RECTANGLE.width}
       height={ADSTERRA_RECTANGLE.height}
-      className={className}
-    />
-  );
-}
-
-/** 728x90 on desktop only. Narrow viewports skip the unit so it does not squeeze the page. */
-export function AdsterraLeaderboard({ className = '' }: { className?: string }) {
-  const isDesktop = useDesktopLeaderboard();
-  if (!isDesktop) return null;
-  return (
-    <AdsterraBanner
-      adKey={ADSTERRA_LEADERBOARD.key}
-      width={ADSTERRA_LEADERBOARD.width}
-      height={ADSTERRA_LEADERBOARD.height}
+      slot={ADSTERRA_RECTANGLE.slot}
       className={className}
     />
   );

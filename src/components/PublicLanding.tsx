@@ -1,9 +1,14 @@
 import { Building2, CreditCard, Wrench } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { AdsterraLeaderboard, AdsterraRectangle } from './AdsterraBanner';
+import { AdsterraRectangle } from './AdsterraBanner';
 import { AdsterraNative } from './AdsterraNative';
 
-/** Public marketing page. Banner units render only here, never on auth or dashboard routes. */
+/**
+ * Public marketing page. At most two layout slots, and only here:
+ * the 300x250 directly under the first sign-up control, and the native
+ * banner directly above the footer. Auth, payment, checkout, and dashboard
+ * routes do not render this page. Social Bar route exclusions stay in index.html.
+ */
 export function PublicLanding() {
   const { user } = useAuth();
 
@@ -22,6 +27,7 @@ export function PublicLanding() {
             </span>
           </div>
           <a
+            data-signup-cta="first"
             href={user ? '/' : '/auth'}
             className="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
           >
@@ -29,6 +35,11 @@ export function PublicLanding() {
           </a>
         </div>
       </header>
+
+      {/* In normal flow, under the header control, so the reserved box cannot cover it. */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 flex justify-end">
+        <AdsterraRectangle />
+      </div>
 
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
@@ -41,9 +52,7 @@ export function PublicLanding() {
           </p>
         </section>
 
-        <AdsterraLeaderboard className="my-8" />
-
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <section className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
           <article className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <Building2 className="h-6 w-6 text-blue-600 mb-3" />
             <h2 className="text-lg font-semibold text-gray-900">Properties and tenants</h2>
@@ -67,11 +76,7 @@ export function PublicLanding() {
           </article>
         </section>
 
-        <div className="my-8 flex justify-center">
-          <AdsterraRectangle />
-        </div>
-
-        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+        <section className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-8">
           <h2 className="text-2xl font-semibold text-gray-900">How an account works</h2>
           <ol className="mt-4 space-y-3 text-gray-600 list-decimal list-inside">
             <li>Create an account or sign in with the email you already use for LushLands.</li>
@@ -79,9 +84,9 @@ export function PublicLanding() {
             <li>Upgrade inside the dashboard if you need the premium screening and media tools.</li>
           </ol>
         </section>
-
-        <AdsterraNative />
       </main>
+
+      <AdsterraNative />
       <footer className="border-t border-gray-200 py-6 text-center text-sm text-gray-500">
         LushLands Management
       </footer>
