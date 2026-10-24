@@ -58,6 +58,8 @@ export function AdsterraBanner({ adKey, width, height, className = '' }: Adsterr
         width={width}
         height={height}
         scrolling="no"
+        sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-forms"
+        referrerPolicy="strict-origin-when-cross-origin"
         style={{
           width,
           height,
@@ -99,15 +101,15 @@ export function AdsterraRectangle({ className = '' }: { className?: string }) {
   );
 }
 
-/** 728x90 on desktop. The 300x250 unit replaces it when the viewport is narrower. */
+/** 728x90 on desktop only. Narrow viewports skip the unit so it does not squeeze the page. */
 export function AdsterraLeaderboard({ className = '' }: { className?: string }) {
   const isDesktop = useDesktopLeaderboard();
-  const unit = isDesktop ? ADSTERRA_LEADERBOARD : ADSTERRA_RECTANGLE;
+  if (!isDesktop) return null;
   return (
     <AdsterraBanner
-      adKey={unit.key}
-      width={unit.width}
-      height={unit.height}
+      adKey={ADSTERRA_LEADERBOARD.key}
+      width={ADSTERRA_LEADERBOARD.width}
+      height={ADSTERRA_LEADERBOARD.height}
       className={className}
     />
   );

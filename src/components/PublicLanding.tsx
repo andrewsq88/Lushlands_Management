@@ -1,22 +1,11 @@
-import { useEffect } from 'react';
 import { Building2, CreditCard, Wrench } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { AdsterraLeaderboard, AdsterraRectangle } from './AdsterraBanner';
 import { AdsterraNative } from './AdsterraNative';
 
-/**
- * Public marketing page. Adsterra units render only here.
- * Setting data-adsterra-public lets the Social Bar snippet in index.html run.
- */
+/** Public marketing page. Banner units render only here, never on auth or dashboard routes. */
 export function PublicLanding() {
   const { user } = useAuth();
-
-  useEffect(() => {
-    document.body.setAttribute('data-adsterra-public', 'true');
-    return () => {
-      document.body.removeAttribute('data-adsterra-public');
-    };
-  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -52,9 +41,7 @@ export function PublicLanding() {
           </p>
         </section>
 
-        <div className="my-8 flex justify-center">
-          <AdsterraLeaderboard />
-        </div>
+        <AdsterraLeaderboard className="my-8" />
 
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <article className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -95,6 +82,9 @@ export function PublicLanding() {
 
         <AdsterraNative />
       </main>
+      <footer className="border-t border-gray-200 py-6 text-center text-sm text-gray-500">
+        LushLands Management
+      </footer>
     </div>
   );
 }
