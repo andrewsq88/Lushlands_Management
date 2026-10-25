@@ -7,7 +7,7 @@ import { AdsterraNative } from './AdsterraNative';
  * Public marketing page. At most two layout slots, and only here:
  * the 300x250 directly under the first sign-up control, and the native
  * banner directly above the footer. Auth, payment, checkout, and dashboard
- * routes do not render this page. Social Bar route exclusions stay in index.html.
+ * routes do not render this page.
  */
 export function PublicLanding() {
   const { user } = useAuth();

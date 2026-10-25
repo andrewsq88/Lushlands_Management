@@ -37,26 +37,5 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- SocialBar_1 (31825904). Parser-inserted only on public pages so document.write inside the ad can run. -->
-    <script data-cfasync="false">
-      (function () {
-        var path = (location.pathname || "/").toLowerCase().replace(/\/+$/, "") || "/";
-        var href = (location.pathname + location.search + location.hash).toLowerCase();
-        if (/\/checkout|\/pay|\/billing|\/login|\/auth|stripe/.test(href)) return;
-        if (/^\/(properties|tenants|maintenance|financing|down-payment|subscription|signup)(\/|$)/.test(path)) return;
-        if (path !== "/" && path !== "/welcome") return;
-        if (path === "/") {
-          try {
-            for (var i = 0; i < localStorage.length; i++) {
-              var key = localStorage.key(i) || "";
-              if (!/^sb-.+-auth-token$/.test(key)) continue;
-              var raw = localStorage.getItem(key) || "";
-              if (raw.indexOf("access_token") !== -1) return;
-            }
-          } catch (e) {}
-        }
-        document.write('<script data-cfasync="false" src="https://bauval.org/14/f144d09c01f5e03a182871af116a8566"><\/script>');
-      })();
-    </script>
   </body>
 </html>
