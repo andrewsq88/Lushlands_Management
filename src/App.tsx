@@ -13,6 +13,8 @@ import { Financing } from './components/Financing';
 import { DownPayment } from './components/DownPayment';
 import { SubscriptionManager } from './components/SubscriptionManager';
 import { PublicLanding } from './components/PublicLanding';
+import { PageMeta } from './components/PageMeta';
+import { HOME_PAGE_HEAD, WELCOME_PAGE_HEAD } from './seo/pageMeta';
 import { validateDomain, checkSSLCertificate, validateEnvironmentVariables, logDNSInfo } from './utils/domainValidation';
 import { performanceMonitor } from './utils/performanceMonitor';
 
@@ -86,7 +88,15 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/welcome" element={<PublicLanding />} />
+        <Route
+          path="/welcome"
+          element={
+            <>
+              <PageMeta {...WELCOME_PAGE_HEAD} />
+              <PublicLanding />
+            </>
+          }
+        />
         {user ? (
           <>
             <Route path="/auth" element={<Navigate to="/" replace />} />
@@ -106,7 +116,15 @@ function App() {
           </>
         ) : (
           <>
-            <Route path="/" element={<PublicLanding />} />
+            <Route
+              path="/"
+              element={
+                <>
+                  <PageMeta {...HOME_PAGE_HEAD} />
+                  <PublicLanding />
+                </>
+              }
+            />
             <Route path="/auth" element={<AuthForm />} />
             <Route path="/login" element={<AuthForm />} />
             <Route path="/signup" element={<AuthForm />} />
