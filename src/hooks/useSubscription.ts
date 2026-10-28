@@ -119,7 +119,11 @@ export function useSubscription() {
       }
 
       // The provided Stripe Payment Link for premium subscription
-      const paymentLinkUrl = 'https://buy.stripe.com/eVqbJ25Nr3f98FJbuA6Na00';
+      // client_reference_id lets the webhook match the payment to this user by id.
+      const linkUrl = new URL('https://buy.stripe.com/eVqbJ25Nr3f98FJbuA6Na00');
+      linkUrl.searchParams.set('client_reference_id', user.id);
+      if (user.email) linkUrl.searchParams.set('prefilled_email', user.email);
+      const paymentLinkUrl = linkUrl.toString();
 
       console.log('Redirecting to Stripe Payment Link:', paymentLinkUrl);
       console.log('User ID for subscription:', user.id);
@@ -183,23 +187,8 @@ export function useSubscription() {
         throw new Error('User not authenticated');
       }
 
-      const monthYear = new Date().toISOString().slice(0, 7); // YYYY-MM format
-
-      const { error } = await supabase
-        .from('premium_usage_logs')
-        .insert([{
-          user_id: user.id,
-          feature_type: featureType,
-          api_provider: apiProvider,
-          month_year: monthYear,
-          usage_count: 1
-        }]);
-
-      if (error) {
-        console.error('Error logging premium usage:', error);
-        throw error;
-      }
-      console.log('Premium usage logged successfully');
+      // Usage is now recorded server-side by the edge function; just refresh.
+      void featureType; void apiProvider;
 
       // Update local usage limits for free users
       if (subscription?.subscription_type === 'free') {
