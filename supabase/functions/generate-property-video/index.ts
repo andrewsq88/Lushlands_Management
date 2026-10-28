@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { checkLimit, logUsage } from '../_shared/usage.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,6 +32,14 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ error: 'User not authenticated' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const limitError = await checkLimit(user.id, 'video');
+    if (limitError) {
+      return new Response(
+        JSON.stringify({ error: limitError }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -105,6 +114,8 @@ Deno.serve(async (req: Request) => {
       videoUrl = 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_2mb.mp4';
     }
 
+    await logUsage(user.id, 'video', 'tavus');
+
     return new Response(
       JSON.stringify({ videoUrl }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
@@ -113,7 +124,7 @@ Deno.serve(async (req: Request) => {
     console.error('Property video generation error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Property video generation failed' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 },
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 },
     );
   }
 });
