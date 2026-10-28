@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { checkLimit, logUsage } from '../_shared/usage.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,6 +32,14 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ error: 'User not authenticated' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const limitError = await checkLimit(user.id, 'voiceover');
+    if (limitError) {
+      return new Response(
+        JSON.stringify({ error: limitError }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -97,6 +106,8 @@ Deno.serve(async (req: Request) => {
     const base64Audio = btoa(chunks.join(''));
     const audioUrl = `data:audio/mpeg;base64,${base64Audio}`;
 
+    await logUsage(user.id, 'voiceover', 'eleven_labs');
+
     return new Response(
       JSON.stringify({ audioUrl }),
       {
@@ -110,7 +121,7 @@ Deno.serve(async (req: Request) => {
       JSON.stringify({ error: error instanceof Error ? error.message : 'Voiceover generation failed' }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: 500,
       },
     );
   }
