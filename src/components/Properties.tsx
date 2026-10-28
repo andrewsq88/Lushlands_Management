@@ -5,6 +5,7 @@ import { useSubscription } from '../hooks/useSubscription';
 import { usePremiumFeatures } from '../hooks/usePremiumFeatures';
 import { PropertyForm } from './PropertyForm';
 import { PropertyPhotosModal } from './PropertyPhotosModal';
+import { AdSenseBanner } from './AdSenseBanner';
 
 export function Properties() {
   const { properties, loading, deleteProperty, updateProperty } = useProperties();
@@ -244,6 +245,13 @@ export function Properties() {
           </div>
         )}
       </div>
+
+      {/* AdSense Banner - Between properties table and AI features */}
+      <AdSenseBanner 
+        slot="2345678901" 
+        format="rectangle"
+        className="max-w-2xl mx-auto"
+      />
 
       {/* AI Features Section */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">

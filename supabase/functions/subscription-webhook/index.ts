@@ -61,61 +61,35 @@ Deno.serve(async (req: Request) => {
             typeof session.subscription === 'string' ? session.subscription : session.subscription.id
           );
 
-          // Primary match: client_reference_id carries the Supabase user id,
-          // appended to the Payment Link URL by createPremiumSubscription.
-          let userId: string | null = null;
-          const refId = session.client_reference_id;
-          const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-          if (refId && UUID_RE.test(refId)) {
-            const { data: refUsers, error: refError } = await supabase
-              .from('users')
-              .select('id')
-              .eq('id', refId)
-              .limit(1);
-            if (refError || !refUsers || refUsers.length === 0) {
-              console.error('User not found for client_reference_id on session:', session.id);
-              break;
+          let userEmail = session.customer_email;
+          if (!userEmail && session.customer) {
+            const customerId = typeof session.customer === 'string' ? session.customer : session.customer.id;
+            const customer = await stripe.customers.retrieve(customerId);
+            if (!customer.deleted && 'email' in customer) {
+              userEmail = customer.email;
             }
-            userId = refUsers[0].id;
-          } else {
-            // Fallback only when client_reference_id is missing/invalid: match by email.
-            console.warn(
-              'checkout.session.completed without a valid client_reference_id; falling back to email match. Session:',
-              session.id,
-            );
+          }
 
-            let userEmail = session.customer_details?.email ?? session.customer_email;
-            if (!userEmail && session.customer) {
-              const customerId = typeof session.customer === 'string' ? session.customer : session.customer.id;
-              const customer = await stripe.customers.retrieve(customerId);
-              if (!customer.deleted && 'email' in customer) {
-                userEmail = customer.email;
-              }
-            }
+          if (!userEmail) {
+            console.error('No email found for checkout session:', session.id);
+            break;
+          }
 
-            if (!userEmail) {
-              console.error('No client_reference_id or email found for checkout session:', session.id);
-              break;
-            }
+          const { data: users, error: userError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('email', userEmail)
+            .limit(1);
 
-            const { data: users, error: userError } = await supabase
-              .from('users')
-              .select('id')
-              .eq('email', userEmail)
-              .limit(1);
-
-            if (userError || !users || users.length === 0) {
-              console.error('User not found by email fallback for checkout session:', session.id);
-              break;
-            }
-            userId = users[0].id;
+          if (userError || !users || users.length === 0) {
+            console.error('User not found for email:', userEmail);
+            break;
           }
 
           const { error: subError } = await supabase
             .from('user_subscriptions')
             .upsert({
-              user_id: userId,
+              user_id: users[0].id,
               subscription_type: 'premium',
               stripe_subscription_id: stripeSubscription.id,
               status: stripeSubscription.status,

@@ -3,6 +3,7 @@ import { Plus, CreditCard as Edit2, Trash2, Search, Filter, AlertTriangle, Clock
 import { useMaintenanceRequests } from '../hooks/useMaintenanceRequests';
 import { MaintenanceForm } from './MaintenanceForm';
 import { MaintenanceRequestsListModal } from './MaintenanceRequestsListModal';
+import { AdSenseBanner } from './AdSenseBanner';
 
 export function Maintenance() {
   const { maintenanceRequests, highPriorityRequests, openRequests, loading, updateMaintenanceRequest, deleteMaintenanceRequest } = useMaintenanceRequests();
@@ -395,6 +396,13 @@ export function Maintenance() {
           </div>
         )}
       </div>
+
+      {/* AdSense Banner - After maintenance requests table */}
+      <AdSenseBanner 
+        slot="6789012345" 
+        format="auto"
+        className="max-w-3xl mx-auto"
+      />
 
       {/* Maintenance Form Modal */}
       {showForm && (

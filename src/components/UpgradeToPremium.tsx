@@ -33,8 +33,8 @@ export function UpgradeToPremium() {
     },
     {
       icon: <Sparkles className="h-5 w-5" />,
-      title: 'Unlimited AI Video Messages',
-      description: 'Create personalised AI video messages for tenants without the free-plan monthly cap'
+      title: 'Advanced Property Analytics',
+      description: 'Get detailed insights and analytics for your property portfolio performance'
     },
     {
       icon: <Sparkles className="h-5 w-5" />,
@@ -82,7 +82,7 @@ export function UpgradeToPremium() {
             <div className="text-right">
               <div className="flex items-center text-green-600 text-sm font-medium">
                 <Check className="h-4 w-4 mr-1" />
-                Cancel anytime
+                30-day free trial
               </div>
             </div>
           </div>
@@ -101,7 +101,7 @@ export function UpgradeToPremium() {
           ) : (
             <>
               <Crown className="h-5 w-5 mr-2" />
-              Upgrade to Premium
+              Start Free Trial
             </>
           )}
         </button>

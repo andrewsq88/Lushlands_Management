@@ -8,17 +8,8 @@ export function SubscriptionManager() {
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Premium is sold only through the Stripe Payment Link (one charge).
-  // The old flow took a separate $15 PaymentForm charge first and then
-  // redirected to the Payment Link as well, which could bill twice.
-  const handleUpgrade = async () => {
-    setActionLoading(true);
-    try {
-      await createPremiumSubscription();
-    } catch (error) {
-      console.error('Subscription upgrade failed:', error);
-      setActionLoading(false);
-    }
+  const handleUpgrade = () => {
+    setShowPaymentForm(true);
   };
 
   const handlePaymentSuccess = async (paymentIntentId: string) => {
@@ -56,7 +47,10 @@ export function SubscriptionManager() {
 
   const features = [
     'Unlimited AI Voiceovers',
-    'Unlimited AI Video Messages'
+    'Advanced Property Analytics',
+    'Priority Customer Support',
+    'Custom Branding Options',
+    'Advanced Reporting'
   ];
 
   return (

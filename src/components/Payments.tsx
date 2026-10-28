@@ -3,6 +3,7 @@ import { Plus, DollarSign, Calendar, User, AlertCircle, CheckCircle, Clock, Exte
 import { usePayments } from '../hooks/usePayments';
 import { PaymentRequestModal } from './PaymentRequestModal';
 import { PaymentListModal } from './PaymentListModal';
+import { AdSenseBanner } from './AdSenseBanner';
 
 export function Payments() {
   const { payments, pendingPayments, paidPayments, loading, updatePayment } = usePayments();
@@ -298,6 +299,13 @@ export function Payments() {
           </div>
         </div>
       </div>
+
+      {/* AdSense Banner - Between stats and payments list */}
+      <AdSenseBanner 
+        slot="7890123456" 
+        format="horizontal"
+        className="max-w-4xl mx-auto"
+      />
 
       {/* Payments List */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
