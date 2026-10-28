@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import { useAuth } from './hooks/useAuth';
+import { analyticsBeforeSend, setAnalyticsSignedIn } from './lib/analytics';
 import { StripeProvider } from './components/StripeProvider';
 import { Layout } from './components/Layout';
 import { AuthForm } from './components/AuthForm';
@@ -30,6 +32,7 @@ function DashboardLayout() {
 
 function App() {
   const { user, loading } = useAuth();
+  setAnalyticsSignedIn(loading || Boolean(user));
 
   useEffect(() => {
     // Initialize domain and SSL validation
@@ -87,6 +90,7 @@ function App() {
 
   return (
     <Router>
+      <Analytics beforeSend={analyticsBeforeSend} />
       <Routes>
         <Route
           path="/welcome"
