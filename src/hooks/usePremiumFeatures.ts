@@ -6,6 +6,28 @@ export function usePremiumFeatures() {
   const { isPremium, canUseFeature, logPremiumUsage } = useSubscription();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [videoProgress, setVideoProgress] = useState<string | null>(null);
+
+  // Tavus renders videos asynchronously: poll video-status until ready or failed.
+  const waitForVideo = async (videoId: string, accessToken: string): Promise<string> => {
+    const started = Date.now();
+    const timeoutMs = 15 * 60 * 1000;
+    setVideoProgress('Queued');
+    while (Date.now() - started < timeoutMs) {
+      await new Promise((r) => setTimeout(r, 10000));
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/video-status`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || 'Could not check video status.');
+      if (body.status === 'ready' && body.videoUrl) return body.videoUrl as string;
+      if (body.status === 'failed') throw new Error(body.error || 'Video generation failed.');
+      setVideoProgress(body.progress ? `Rendering… ${body.progress}` : 'Rendering…');
+    }
+    throw new Error('Video is still rendering. Please check back in a few minutes.');
+  };
 
   const generateVoiceover = async (text: string, voice?: string) => {
     // Check if user can use this feature
@@ -103,14 +125,11 @@ export function usePremiumFeatures() {
       }
 
       const result = await response.json();
-      console.log('Video generated successfully');
-      
-      // Save video to Supabase storage
-      const videoUrl = await saveVideoToStorage(result.videoUrl, `${tenantName}-message`);
-      
-      // Log usage (this will count against free user limits)
-      await logPremiumUsage('video', 'tavus');
-      
+      if (!result.videoId) throw new Error('Video service did not return a job id.');
+      // Usage is logged server-side when the job is accepted.
+      const finalUrl = await waitForVideo(result.videoId, session.access_token);
+      const videoUrl = await saveVideoToStorage(finalUrl, `${tenantName}-message`);
+
       return { videoUrl, error: null };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Video generation failed. Try again.';
@@ -119,6 +138,7 @@ export function usePremiumFeatures() {
       return { videoUrl: null, error: errorMessage };
     } finally {
       setLoading(false);
+      setVideoProgress(null);
     }
   };
 
@@ -164,14 +184,11 @@ export function usePremiumFeatures() {
       }
 
       const result = await response.json();
-      console.log('Property video generated successfully');
-      
-      // Save video to Supabase storage
-      const videoUrl = await saveVideoToStorage(result.videoUrl, 'property-promotional');
-      
-      // Log usage (this will count against free user limits)
-      await logPremiumUsage('video', 'tavus');
-      
+      if (!result.videoId) throw new Error('Video service did not return a job id.');
+      // Usage is logged server-side when the job is accepted.
+      const finalUrl = await waitForVideo(result.videoId, videoSession.access_token);
+      const videoUrl = await saveVideoToStorage(finalUrl, 'property-promotional');
+
       return { videoUrl, error: null };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Property video generation failed. Try again.';
@@ -180,6 +197,7 @@ export function usePremiumFeatures() {
       return { videoUrl: null, error: errorMessage };
     } finally {
       setLoading(false);
+      setVideoProgress(null);
     }
   };
 
@@ -298,6 +316,7 @@ export function usePremiumFeatures() {
 
   return {
     isPremium,
+    videoProgress,
     loading,
     error,
     canUseFeature,
