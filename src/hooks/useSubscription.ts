@@ -119,7 +119,11 @@ export function useSubscription() {
       }
 
       // The provided Stripe Payment Link for premium subscription
-      const paymentLinkUrl = 'https://buy.stripe.com/eVqbJ25Nr3f98FJbuA6Na00';
+      // client_reference_id lets the webhook match the payment to this user by id.
+      const linkUrl = new URL('https://buy.stripe.com/eVqbJ25Nr3f98FJbuA6Na00');
+      linkUrl.searchParams.set('client_reference_id', user.id);
+      if (user.email) linkUrl.searchParams.set('prefilled_email', user.email);
+      const paymentLinkUrl = linkUrl.toString();
 
       console.log('Redirecting to Stripe Payment Link:', paymentLinkUrl);
       console.log('User ID for subscription:', user.id);
