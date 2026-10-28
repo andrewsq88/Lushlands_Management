@@ -6,7 +6,7 @@ import { useTenants } from '../hooks/useTenants';
 import { useMaintenanceRequests } from '../hooks/useMaintenanceRequests';
 
 export function PremiumFeatures() {
-  const { isPremium, loading, error, generateVoiceover, generatePersonalizedVideo, clearError } = usePremiumFeatures();
+  const { isPremium, loading, error, videoProgress, generateVoiceover, generatePersonalizedVideo, clearError } = usePremiumFeatures();
   const { properties } = useProperties();
   const { tenants } = useTenants();
   const { maintenanceRequests } = useMaintenanceRequests();
@@ -289,9 +289,14 @@ export function PremiumFeatures() {
                   ) : (
                     <Video className="h-4 w-4 mr-2" />
                   )}
-                  Generate Personalized Video
+                  {videoProgress ? `Generating video: ${videoProgress}` : 'Generate Personalized Video'}
                 </button>
               </div>
+              {videoProgress && (
+                <p className="text-xs text-gray-500 mt-2">
+                  Videos usually take a few minutes to render. Keep this tab open.
+                </p>
+              )}
             </div>
 
             {/* Generated Video Player */}
