@@ -183,23 +183,8 @@ export function useSubscription() {
         throw new Error('User not authenticated');
       }
 
-      const monthYear = new Date().toISOString().slice(0, 7); // YYYY-MM format
-
-      const { error } = await supabase
-        .from('premium_usage_logs')
-        .insert([{
-          user_id: user.id,
-          feature_type: featureType,
-          api_provider: apiProvider,
-          month_year: monthYear,
-          usage_count: 1
-        }]);
-
-      if (error) {
-        console.error('Error logging premium usage:', error);
-        throw error;
-      }
-      console.log('Premium usage logged successfully');
+      // Usage is now recorded server-side by the edge function; just refresh.
+      void featureType; void apiProvider;
 
       // Update local usage limits for free users
       if (subscription?.subscription_type === 'free') {
