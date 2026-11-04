@@ -60,11 +60,33 @@ function restoreMeta(snapshot: MetaSnapshot) {
  * canonical for one route. Restores the previous head on cleanup so another
  * route (including the homepage tags from index.html) is left unchanged.
  */
+function syncJsonLd(jsonLd: string): () => void {
+  const selector = 'script[type="application/ld+json"][data-seo="public"]';
+  const script = document.head.querySelector<HTMLScriptElement>(selector);
+  if (!script) {
+    const created = document.createElement('script');
+    created.type = 'application/ld+json';
+    created.setAttribute('data-seo', 'public');
+    created.textContent = jsonLd;
+    document.head.appendChild(created);
+    return () => {
+      created.remove();
+    };
+  }
+
+  if (script.textContent !== jsonLd) {
+    script.textContent = jsonLd;
+  }
+
+  return () => undefined;
+}
+
 export function usePageMeta({
   title,
   description,
   canonical,
   socialDescription,
+  jsonLd,
 }: PageMetaValues) {
   const social = socialDescription ?? description;
 
@@ -81,6 +103,7 @@ export function usePageMeta({
     ];
 
     const snapshots = slots.flatMap(applyMeta);
+    const removeJsonLd = syncJsonLd(jsonLd);
 
     let canonicalLink = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     const createdCanonical = canonicalLink === null;
@@ -98,6 +121,7 @@ export function usePageMeta({
     return () => {
       document.title = previousTitle;
       snapshots.forEach(restoreMeta);
+      removeJsonLd();
 
       if (createdCanonical) {
         canonicalLink.remove();
@@ -111,5 +135,5 @@ export function usePageMeta({
 
       canonicalLink.setAttribute('href', previousCanonical);
     };
-  }, [title, description, canonical, social]);
+  }, [title, description, canonical, social, jsonLd]);
 }
