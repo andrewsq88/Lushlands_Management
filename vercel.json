@@ -2,10 +2,17 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "redirects": [
+    { "source": "/welcome/", "destination": "/welcome", "permanent": true },
+    { "source": "/faq/", "destination": "/faq", "permanent": true },
+    { "source": "/terms/", "destination": "/terms", "permanent": true },
+    { "source": "/privacy/", "destination": "/privacy", "permanent": true },
+    { "source": "/disclaimer/", "destination": "/disclaimer", "permanent": true }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "/spa.html"
     }
   ],
   "headers": [
@@ -51,6 +58,15 @@
         {
           "key": "Access-Control-Allow-Origin",
           "value": "https://www.lushlandsmanagement.com"
+        }
+      ]
+    },
+    {
+      "source": "/sitemap.xml",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/xml; charset=utf-8"
         }
       ]
     },

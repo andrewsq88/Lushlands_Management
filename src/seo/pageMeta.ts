@@ -1,31 +1,147 @@
 /**
  * Per-route document head copy.
- * Homepage strings match index.html. Welcome copy is the 25 Oct SEO draft.
- * Absolute URLs use www because the apex host 307-redirects there, and the
- * homepage canonical already points at www.
+ * Homepage strings match the original index.html title and description.
+ * Absolute URLs use www because the apex host 307-redirects there.
  */
+import { publicJsonLdScript, publicJsonLdText } from './structuredData';
+import { type PublicPath } from './publicPaths';
+import { OG_IMAGE, SITE_ORIGIN } from './site';
+
 export interface PageMetaValues {
+  path: PublicPath;
+  heading: string;
   title: string;
   description: string;
   canonical: string;
   /** Open Graph and Twitter description. Defaults to `description`. */
   socialDescription?: string;
+  keywords?: string;
+  jsonLd: string;
 }
 
-export const SITE_ORIGIN = 'https://www.lushlandsmanagement.com';
+export { OG_IMAGE, SITE_ORIGIN } from './site';
 
-export const HOME_PAGE_HEAD: PageMetaValues = {
+const JSON_LD = publicJsonLdText();
+
+function canonicalFor(path: PublicPath): string {
+  return path === '/' ? `${SITE_ORIGIN}/` : `${SITE_ORIGIN}${path}`;
+}
+
+function page(values: Omit<PageMetaValues, 'canonical' | 'jsonLd'>): PageMetaValues {
+  return {
+    ...values,
+    canonical: canonicalFor(values.path),
+    jsonLd: JSON_LD,
+  };
+}
+
+export const HOME_PAGE_HEAD: PageMetaValues = page({
+  path: '/',
+  heading: 'Property management for landlords and tenants',
   title: 'LushLands Management - Professional Property Management Platform',
   description:
     'Professional property management platform for landlords and tenants with AI-powered features. Manage properties, tenants, maintenance, and payments with ease.',
   socialDescription:
     'Professional property management platform for landlords and tenants with AI-powered features.',
-  canonical: `${SITE_ORIGIN}/`,
-};
+  keywords: 'property management, landlord, tenant, real estate, maintenance, payments, AI',
+});
 
-export const WELCOME_PAGE_HEAD: PageMetaValues = {
+export const WELCOME_PAGE_HEAD: PageMetaValues = page({
+  path: '/welcome',
+  heading: 'Property management for landlords and tenants',
   title: 'Property Management Software for Landlords & Letting Agents | LushLands',
   description:
     'Track properties, tenants, maintenance requests and rent payments in one dashboard. Requests are prioritised automatically. Built for landlords and letting agents.',
-  canonical: `${SITE_ORIGIN}/welcome`,
-};
+});
+
+export const FAQ_PAGE_HEAD: PageMetaValues = page({
+  path: '/faq',
+  heading: 'Frequently asked questions',
+  title: 'FAQ | LushLands Management',
+  description:
+    'Answers about LushLands Management for landlords and property managers worldwide, including features, the free plan, Premium, payments, and AI audio.',
+});
+
+export const TERMS_PAGE_HEAD: PageMetaValues = page({
+  path: '/terms',
+  heading: 'Terms and Conditions',
+  title: 'Terms and Conditions | LushLands Management',
+  description:
+    'Terms for using LushLands Management, property-management software for landlords and property managers worldwide.',
+});
+
+export const PRIVACY_PAGE_HEAD: PageMetaValues = page({
+  path: '/privacy',
+  heading: 'Privacy Policy',
+  title: 'Privacy Policy | LushLands Management',
+  description:
+    'How LushLands Management handles account data, property records, Stripe payments, generated audio, and public-page analytics.',
+});
+
+export const DISCLAIMER_PAGE_HEAD: PageMetaValues = page({
+  path: '/disclaimer',
+  heading: 'Disclaimer',
+  title: 'Disclaimer | LushLands Management',
+  description:
+    'LushLands Management is not legal, financial, or tax advice. You are responsible for local laws. AI and audio content may contain errors.',
+});
+
+export const PUBLIC_PAGES: readonly PageMetaValues[] = [
+  HOME_PAGE_HEAD,
+  WELCOME_PAGE_HEAD,
+  FAQ_PAGE_HEAD,
+  TERMS_PAGE_HEAD,
+  PRIVACY_PAGE_HEAD,
+  DISCLAIMER_PAGE_HEAD,
+];
+
+const pagesByPath = new Map<string, PageMetaValues>(PUBLIC_PAGES.map((entry) => [entry.path, entry]));
+
+export function getPageHead(path: string): PageMetaValues {
+  const normalized = path.replace(/\/+$/, '') || '/';
+  const head = pagesByPath.get(normalized);
+  if (!head) {
+    throw new Error(`No public page head for ${path}`);
+  }
+  return head;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/** Static tags for one prerendered document. The font links stay outside this block. */
+export function renderHead(page: PageMetaValues): string {
+  const social = page.socialDescription ?? page.description;
+  const lines = [
+    `<title>${escapeHtml(page.title)}</title>`,
+    `<meta name="description" content="${escapeHtml(page.description)}" />`,
+  ];
+
+  if (page.keywords) {
+    lines.push(`<meta name="keywords" content="${escapeHtml(page.keywords)}" />`);
+  }
+
+  lines.push(
+    '<meta name="author" content="LushLands Management" />',
+    '<meta property="og:type" content="website" />',
+    '<meta property="og:site_name" content="LushLands Management" />',
+    `<meta property="og:url" content="${escapeHtml(page.canonical)}" />`,
+    `<meta property="og:title" content="${escapeHtml(page.title)}" />`,
+    `<meta property="og:description" content="${escapeHtml(social)}" />`,
+    `<meta property="og:image" content="${escapeHtml(OG_IMAGE)}" />`,
+    '<meta name="twitter:card" content="summary_large_image" />',
+    `<meta name="twitter:url" content="${escapeHtml(page.canonical)}" />`,
+    `<meta name="twitter:title" content="${escapeHtml(page.title)}" />`,
+    `<meta name="twitter:description" content="${escapeHtml(social)}" />`,
+    `<meta name="twitter:image" content="${escapeHtml(OG_IMAGE)}" />`,
+    `<link rel="canonical" href="${escapeHtml(page.canonical)}" />`,
+    publicJsonLdScript(),
+  );
+
+  return lines.join('\n    ');
+}

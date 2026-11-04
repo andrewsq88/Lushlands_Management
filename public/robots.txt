@@ -1,13 +1,16 @@
-# Public pages (/ and /welcome) are allowed by default.
+# Public pages are allowed by default:
+# /, /welcome, /faq, /terms, /privacy, /disclaimer.
 # The signed-in dashboard uses /, which is also the public homepage, so / stays allowed.
-# Disallow the private routes declared in the React router.
-# There is no /dashboard, /checkout, or /sign-in path:
-# sign-in is /auth, /login, and /signup; Stripe checkout returns to /payments.
+# Disallow auth, payment, checkout, and private dashboard routes.
+# There is no /dashboard or /sign-in path.
+# Sign-in is /auth, /login, and /signup. Stripe checkout returns to /payments.
+# /checkout is disallowed so a checkout path is not crawled. /spa.html is the app shell.
 
 User-agent: *
 Disallow: /auth
 Disallow: /login
 Disallow: /signup
+Disallow: /checkout
 Disallow: /properties
 Disallow: /tenants
 Disallow: /maintenance
@@ -15,5 +18,6 @@ Disallow: /payments
 Disallow: /financing
 Disallow: /down-payment
 Disallow: /subscription
+Disallow: /spa.html
 
 Sitemap: https://www.lushlandsmanagement.com/sitemap.xml
