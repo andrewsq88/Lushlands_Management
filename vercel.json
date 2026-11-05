@@ -7,11 +7,12 @@
     { "source": "/faq/", "destination": "/faq", "permanent": true },
     { "source": "/terms/", "destination": "/terms", "permanent": true },
     { "source": "/privacy/", "destination": "/privacy", "permanent": true },
-    { "source": "/disclaimer/", "destination": "/disclaimer", "permanent": true }
+    { "source": "/disclaimer/", "destination": "/disclaimer", "permanent": true },
+    { "source": "/Possible Property Hub Logo.png", "destination": "/possible-property-hub-logo.png", "permanent": true }
   ],
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!llms\\.txt).*)",
       "destination": "/spa.html"
     }
   ],
@@ -67,6 +68,15 @@
         {
           "key": "Content-Type",
           "value": "application/xml; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/llms.txt",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain; charset=utf-8"
         }
       ]
     },

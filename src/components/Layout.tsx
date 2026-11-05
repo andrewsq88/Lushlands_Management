@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Home, LogOut, User, Users, DollarSign, TrendingUp, PiggyBank, Wrench, CreditCard } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { LOGO_PATH } from '../seo/site';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -38,7 +39,7 @@ export function Layout({ children }: LayoutProps) {
             {/* Logo and Brand Name */}
             <div className="flex items-center min-w-0">
               <img 
-                src="/Possible Property Hub Logo.png" 
+                src={LOGO_PATH} 
                 alt="LushLands Management Logo" 
                 className="h-10 w-10 object-contain flex-shrink-0"
               />

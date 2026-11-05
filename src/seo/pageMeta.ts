@@ -1,6 +1,6 @@
 /**
  * Per-route document head copy.
- * Homepage strings match the original index.html title and description.
+ * Homepage title and description match index.html.
  * Absolute URLs use www because the apex host 307-redirects there.
  */
 import { publicJsonLdScript, publicJsonLdText } from './structuredData';
@@ -40,18 +40,18 @@ export const HOME_PAGE_HEAD: PageMetaValues = page({
   heading: 'Property management for landlords and tenants',
   title: 'LushLands Management - Professional Property Management Platform',
   description:
-    'Professional property management platform for landlords and tenants with AI-powered features. Manage properties, tenants, maintenance, and payments with ease.',
+    'Property management software for landlords and property managers in any country. Record properties, tenants, maintenance, and payments in one place, with optional audio and video tools.',
   socialDescription:
-    'Professional property management platform for landlords and tenants with AI-powered features.',
-  keywords: 'property management, landlord, tenant, real estate, maintenance, payments, AI',
+    'Property management software for landlords and property managers in any country. Record properties, tenants, maintenance, and payments in one place.',
+  keywords: 'property management, landlord, property manager, letting agent, tenant, maintenance, payments',
 });
 
 export const WELCOME_PAGE_HEAD: PageMetaValues = page({
   path: '/welcome',
-  heading: 'Property management for landlords and tenants',
+  heading: 'Property management software for landlords in any country',
   title: 'Property Management Software for Landlords & Letting Agents | LushLands',
   description:
-    'Track properties, tenants, maintenance requests and rent payments in one dashboard. Requests are prioritised automatically. Built for landlords and letting agents.',
+    'Property management software for landlords, letting agents, and property managers in any country. Track properties, tenants, maintenance, and rent payments. A free plan is available. Premium is 15 US dollars a month.',
 });
 
 export const FAQ_PAGE_HEAD: PageMetaValues = page({

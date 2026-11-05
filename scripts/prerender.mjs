@@ -118,6 +118,115 @@ try {
     throw new Error('spa.html must stay an empty shell.');
   }
 
+  const verification = 'name="google-site-verification" content="fJ2D1sGWNNQ-R0gu8Z7nXCsMms8ea330BGCVDrzniMs"';
+  if (!shell.includes(verification) || !spa.includes(verification)) {
+    throw new Error('google-site-verification tag was removed from the shell.');
+  }
+
+  const llms = fs.readFileSync(path.join(dist, 'llms.txt'), 'utf8');
+  if (/<!doctype|<html|id="root"|<script/i.test(llms)) {
+    throw new Error('llms.txt must be plain text, not the SPA shell.');
+  }
+  if (!/property management software/i.test(llms) || !/any country/i.test(llms)) {
+    throw new Error('llms.txt must describe the product for landlords in any country.');
+  }
+  for (const publicPath of ['/', '/welcome', '/faq', '/terms', '/privacy', '/disclaimer']) {
+    const url = publicPath === '/'
+      ? 'https://www.lushlandsmanagement.com/'
+      : `https://www.lushlandsmanagement.com${publicPath}`;
+    if (!llms.includes(`](${url})`) && !llms.includes(`](${url}):`)) {
+      throw new Error(`llms.txt is missing ${url}`);
+    }
+  }
+
+  const vercel = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
+  const spaRewrite = vercel.rewrites?.find((rule) => rule.destination === '/spa.html');
+  if (!spaRewrite) {
+    throw new Error('SPA rewrite is missing.');
+  }
+  const rewritePattern = new RegExp(`^${spaRewrite.source}$`);
+  if (rewritePattern.test('/llms.txt')) {
+    throw new Error('SPA rewrite still matches /llms.txt.');
+  }
+  for (const route of ['/', '/welcome', '/auth', '/payments', '/spa.html']) {
+    if (!rewritePattern.test(route)) {
+      throw new Error(`SPA rewrite no longer matches ${route}.`);
+    }
+  }
+  const llmsType = vercel.headers
+    ?.find((rule) => rule.source === '/llms.txt')
+    ?.headers?.find((header) => header.key.toLowerCase() === 'content-type')?.value ?? '';
+  if (!llmsType.toLowerCase().startsWith('text/plain')) {
+    throw new Error('/llms.txt must declare Content-Type text/plain.');
+  }
+
+  const aiCrawlers = ['GPTBot', 'OAI-SearchBot', 'ClaudeBot', 'PerplexityBot', 'Google-Extended'];
+  for (const bot of aiCrawlers) {
+    if (!robots.includes(`User-agent: ${bot}\n`)) {
+      throw new Error(`robots.txt is missing ${bot}.`);
+    }
+  }
+  const privatePaths = [
+    '/auth',
+    '/login',
+    '/signup',
+    '/checkout',
+    '/properties',
+    '/tenants',
+    '/maintenance',
+    '/payments',
+    '/financing',
+    '/down-payment',
+    '/subscription',
+    '/spa.html',
+  ];
+  for (const blocked of privatePaths) {
+    const count = robots.split(`Disallow: ${blocked}\n`).length - 1;
+    if (count < aiCrawlers.length + 1) {
+      throw new Error(`robots.txt dropped a Disallow for ${blocked}.`);
+    }
+  }
+  for (const allowed of ['/\n', '/welcome\n', '/faq\n', '/terms\n', '/privacy\n', '/disclaimer\n', '/llms.txt\n']) {
+    const count = robots.split(`Allow: ${allowed}`).length - 1;
+    if (count < aiCrawlers.length) {
+      throw new Error(`robots.txt is missing Allow: ${allowed.trim()} for an AI crawler.`);
+    }
+  }
+
+  const logoName = 'possible-property-hub-logo.png';
+  if (!fs.existsSync(path.join(dist, logoName))) {
+    throw new Error(`Missing ${logoName}.`);
+  }
+  if (fs.existsSync(path.join(dist, 'Possible Property Hub Logo.png'))) {
+    throw new Error('The spaced logo filename is still in the build output.');
+  }
+
+  const home = fs.readFileSync(path.join(dist, 'index.html'), 'utf8');
+  const welcome = fs.readFileSync(path.join(dist, 'welcome', 'index.html'), 'utf8');
+  for (const [route, html] of [['/', home], ['/welcome', welcome]]) {
+    if (!html.includes(verification)) {
+      throw new Error(`${route} dropped google-site-verification.`);
+    }
+    if (!/any country/i.test(html) || !/property managers/i.test(html)) {
+      throw new Error(`${route} is missing the landlord and international copy.`);
+    }
+    if (!html.includes('data-ad-slot="300x250-below-signup"') || !html.includes('data-ad-slot="native-above-footer"')) {
+      throw new Error(`${route} is missing an ad slot.`);
+    }
+    if (!html.includes(logoName) || html.includes('Possible Property Hub Logo')) {
+      throw new Error(`${route} still points at the old logo filename.`);
+    }
+  }
+  for (const route of ['faq', 'terms', 'privacy', 'disclaimer']) {
+    const html = fs.readFileSync(path.join(dist, route, 'index.html'), 'utf8');
+    if (html.includes('data-ad-slot=')) {
+      throw new Error(`${route} must not include an ad slot.`);
+    }
+    if (!html.includes(verification)) {
+      throw new Error(`${route} dropped google-site-verification.`);
+    }
+  }
+
   console.log(`Prerendered ${pages.length} public pages and wrote sitemap.xml`);
 } finally {
   await server.close();
