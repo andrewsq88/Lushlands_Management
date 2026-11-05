@@ -37,7 +37,11 @@ function previewLikeProduction(): Plugin {
         }
 
         const path = pathname.replace(/\/+$/, '') || '/';
-        if (!publicPaths.has(path)) {
+        if (path !== '/' && publicPaths.has(path)) {
+          // Vercel serves welcome/index.html at /welcome. Vite's fallback would
+          // otherwise return the homepage document for that clean URL.
+          req.url = query ? `${path}/index.html?${query}` : `${path}/index.html`;
+        } else if (!publicPaths.has(path)) {
           req.url = query ? `/spa.html?${query}` : '/spa.html';
         }
         next();

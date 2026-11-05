@@ -1,7 +1,5 @@
 import { FAQ_ITEMS } from './faq';
-import { SITE_ORIGIN } from './site';
-
-const LOGO_URL = `${SITE_ORIGIN}/Possible%20Property%20Hub%20Logo.png`;
+import { OG_IMAGE, SITE_ORIGIN } from './site';
 
 /** Organization, SoftwareApplication, and FAQPage for every public document. */
 export function publicJsonLd(): Record<string, unknown> {
@@ -13,7 +11,7 @@ export function publicJsonLd(): Record<string, unknown> {
         '@id': `${SITE_ORIGIN}/#organization`,
         name: 'LushLands Management',
         url: `${SITE_ORIGIN}/`,
-        logo: LOGO_URL,
+        logo: OG_IMAGE,
         description:
           'Property management software for landlords and property managers worldwide. Record properties, occupants, maintenance, and payments.',
       },

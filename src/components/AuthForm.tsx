@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { LOGO_PATH } from '../seo/site';
 
 export function AuthForm() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -72,7 +73,7 @@ export function AuthForm() {
         <div className="text-center font-playfair">
           <div className="flex justify-center">
             <img 
-              src="/Possible Property Hub Logo.png" 
+              src={LOGO_PATH} 
               alt="LushLands Management Logo" 
               className="h-16 w-16 object-contain"
             />

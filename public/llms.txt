@@ -1,0 +1,24 @@
+# LushLands Management
+
+> LushLands Management is property management software for landlords and property managers in any country.
+
+LushLands is web software for keeping a property portfolio in one account: properties, the people who own or occupy them, maintenance, and payments. The screens are in English. The product is not built for one country. It is a record-keeping tool. It does not act as a lawyer, accountant, broker, or local property manager, and it does not give legal, tax, or financial advice. You follow the housing, privacy, and tax rules that apply where you operate.
+
+It is for landlords, owners, letting agents, and property managers, including people whose rentals are in a different country from where they live.
+
+You can save property and occupant records, log maintenance and keep a priority on each request, and record rent and other charges. Card payments are processed by Stripe. LushLands does not store the full card number and does not hold a bank account for you. A free plan includes those records, plus up to 5 audio clips and 1 video message a month generated from text you supply. Premium is 15 US dollars a month and removes those monthly audio and video caps. Generated audio and video can be wrong, so check them before you send them to anyone.
+
+Sign-in, payment, checkout, and private dashboard addresses are not public pages and are left out of this file.
+
+## Public pages
+
+- [Home](https://www.lushlandsmanagement.com/): Public overview of the software, who it is for, and the core records
+- [Welcome](https://www.lushlandsmanagement.com/welcome): Landlord-focused introduction, features, and the free and Premium plans
+- [FAQ](https://www.lushlandsmanagement.com/faq): Questions about features, plans, payments, audio, and local law
+- [Terms and Conditions](https://www.lushlandsmanagement.com/terms): Terms for using the software
+- [Privacy Policy](https://www.lushlandsmanagement.com/privacy): How account data, property records, Stripe payments, and generated audio are handled
+- [Disclaimer](https://www.lushlandsmanagement.com/disclaimer): The product is not legal, financial, or tax advice
+
+## Optional
+
+- [Sitemap](https://www.lushlandsmanagement.com/sitemap.xml): The same public pages, listed for crawlers

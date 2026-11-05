@@ -5,6 +5,113 @@
 # There is no /dashboard or /sign-in path.
 # Sign-in is /auth, /login, and /signup. Stripe checkout returns to /payments.
 # /checkout is disallowed so a checkout path is not crawled. /spa.html is the app shell.
+# GPTBot, OAI-SearchBot, ClaudeBot, PerplexityBot, and Google-Extended each get
+# explicit Allow entries for the public pages and /llms.txt, and the same Disallow list.
+
+User-agent: GPTBot
+Disallow: /auth
+Disallow: /login
+Disallow: /signup
+Disallow: /checkout
+Disallow: /properties
+Disallow: /tenants
+Disallow: /maintenance
+Disallow: /payments
+Disallow: /financing
+Disallow: /down-payment
+Disallow: /subscription
+Disallow: /spa.html
+Allow: /
+Allow: /welcome
+Allow: /faq
+Allow: /terms
+Allow: /privacy
+Allow: /disclaimer
+Allow: /llms.txt
+
+User-agent: OAI-SearchBot
+Disallow: /auth
+Disallow: /login
+Disallow: /signup
+Disallow: /checkout
+Disallow: /properties
+Disallow: /tenants
+Disallow: /maintenance
+Disallow: /payments
+Disallow: /financing
+Disallow: /down-payment
+Disallow: /subscription
+Disallow: /spa.html
+Allow: /
+Allow: /welcome
+Allow: /faq
+Allow: /terms
+Allow: /privacy
+Allow: /disclaimer
+Allow: /llms.txt
+
+User-agent: ClaudeBot
+Disallow: /auth
+Disallow: /login
+Disallow: /signup
+Disallow: /checkout
+Disallow: /properties
+Disallow: /tenants
+Disallow: /maintenance
+Disallow: /payments
+Disallow: /financing
+Disallow: /down-payment
+Disallow: /subscription
+Disallow: /spa.html
+Allow: /
+Allow: /welcome
+Allow: /faq
+Allow: /terms
+Allow: /privacy
+Allow: /disclaimer
+Allow: /llms.txt
+
+User-agent: PerplexityBot
+Disallow: /auth
+Disallow: /login
+Disallow: /signup
+Disallow: /checkout
+Disallow: /properties
+Disallow: /tenants
+Disallow: /maintenance
+Disallow: /payments
+Disallow: /financing
+Disallow: /down-payment
+Disallow: /subscription
+Disallow: /spa.html
+Allow: /
+Allow: /welcome
+Allow: /faq
+Allow: /terms
+Allow: /privacy
+Allow: /disclaimer
+Allow: /llms.txt
+
+User-agent: Google-Extended
+Disallow: /auth
+Disallow: /login
+Disallow: /signup
+Disallow: /checkout
+Disallow: /properties
+Disallow: /tenants
+Disallow: /maintenance
+Disallow: /payments
+Disallow: /financing
+Disallow: /down-payment
+Disallow: /subscription
+Disallow: /spa.html
+Allow: /
+Allow: /welcome
+Allow: /faq
+Allow: /terms
+Allow: /privacy
+Allow: /disclaimer
+Allow: /llms.txt
 
 User-agent: *
 Disallow: /auth
