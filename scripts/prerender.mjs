@@ -117,6 +117,9 @@ try {
   if (spa.includes('data-ssg="true"') || !spa.includes('data-prerender-slot="app"')) {
     throw new Error('spa.html must stay an empty shell.');
   }
+  if (spa.includes('registerprep.vercel.app')) {
+    throw new Error('spa.html must not include the RegisterPrep recommendation.');
+  }
 
   const verification = 'name="google-site-verification" content="fJ2D1sGWNNQ-R0gu8Z7nXCsMms8ea330BGCVDrzniMs"';
   if (!shell.includes(verification) || !spa.includes(verification)) {
@@ -213,6 +216,13 @@ try {
     if (!html.includes('data-ad-slot="300x250-below-signup"') || !html.includes('data-ad-slot="native-above-footer"')) {
       throw new Error(`${route} is missing an ad slot.`);
     }
+    if (!html.includes('href="https://registerprep.vercel.app/"') || !html.includes('For landlords in England')) {
+      throw new Error(`${route} is missing the England RegisterPrep recommendation.`);
+    }
+    const registerPrepLinks = html.split('href="https://registerprep.vercel.app/"').length - 1;
+    if (registerPrepLinks !== 1) {
+      throw new Error(`${route} should contain one RegisterPrep link, found ${registerPrepLinks}.`);
+    }
     if (!html.includes(logoName) || html.includes('Possible Property Hub Logo')) {
       throw new Error(`${route} still points at the old logo filename.`);
     }
@@ -221,6 +231,9 @@ try {
     const html = fs.readFileSync(path.join(dist, route, 'index.html'), 'utf8');
     if (html.includes('data-ad-slot=')) {
       throw new Error(`${route} must not include an ad slot.`);
+    }
+    if (html.includes('registerprep.vercel.app') || html.includes('For landlords in England')) {
+      throw new Error(`${route} must not include the England RegisterPrep recommendation.`);
     }
     if (!html.includes(verification)) {
       throw new Error(`${route} dropped google-site-verification.`);

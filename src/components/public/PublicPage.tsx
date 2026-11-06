@@ -2,6 +2,7 @@ import { Building2, CreditCard, Wrench } from 'lucide-react';
 import { AdsterraRectangle } from '../AdsterraBanner';
 import { AdsterraNative } from '../AdsterraNative';
 import { LOGO_PATH } from '../../seo/site';
+import { EnglandLandlordNote } from './EnglandLandlordNote';
 import { DisclaimerPage, FaqPage, PrivacyPage, TermsPage } from './legalPages';
 
 /**
@@ -140,6 +141,8 @@ function HomeBody() {
           generated clip or on a record in the dashboard.
         </p>
       </section>
+
+      <EnglandLandlordNote />
     </>
   );
 }
@@ -251,6 +254,8 @@ function WelcomeBody() {
           dashboard itself is private to your account and is not a public page.
         </p>
       </section>
+
+      <EnglandLandlordNote />
     </>
   );
 }
