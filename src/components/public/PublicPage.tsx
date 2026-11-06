@@ -2,7 +2,7 @@ import { Building2, CreditCard, Wrench } from 'lucide-react';
 import { AdsterraRectangle } from '../AdsterraBanner';
 import { AdsterraNative } from '../AdsterraNative';
 import { LOGO_PATH } from '../../seo/site';
-import { EnglandLandlordNote } from './EnglandLandlordNote';
+import { EnglandLandlordLink } from './EnglandLandlordNote';
 import { DisclaimerPage, FaqPage, PrivacyPage, TermsPage } from './legalPages';
 
 /**
@@ -12,6 +12,7 @@ import { DisclaimerPage, FaqPage, PrivacyPage, TermsPage } from './legalPages';
  */
 export function PublicPage({ path, signedIn }: { path: string; signedIn: boolean }) {
   const showAds = path === '/' || path === '/welcome';
+  const showEnglandLink = path === '/' || path === '/welcome';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -48,6 +49,7 @@ export function PublicPage({ path, signedIn }: { path: string; signedIn: boolean
       </main>
 
       {showAds && <AdsterraNative />}
+      {showEnglandLink && <EnglandLandlordLink />}
       <PublicFooter />
     </div>
   );
@@ -141,8 +143,6 @@ function HomeBody() {
           generated clip or on a record in the dashboard.
         </p>
       </section>
-
-      <EnglandLandlordNote />
     </>
   );
 }
@@ -254,8 +254,6 @@ function WelcomeBody() {
           dashboard itself is private to your account and is not a public page.
         </p>
       </section>
-
-      <EnglandLandlordNote />
     </>
   );
 }

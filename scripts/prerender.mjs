@@ -216,12 +216,23 @@ try {
     if (!html.includes('data-ad-slot="300x250-below-signup"') || !html.includes('data-ad-slot="native-above-footer"')) {
       throw new Error(`${route} is missing an ad slot.`);
     }
-    if (!html.includes('href="https://registerprep.vercel.app/"') || !html.includes('For landlords in England')) {
-      throw new Error(`${route} is missing the England RegisterPrep recommendation.`);
+    const registerPrepHref = 'href="https://registerprep.vercel.app/"';
+    const registerPrepLabel = '>For landlords in England</a>';
+    if (!html.includes(registerPrepHref) || !html.includes(registerPrepLabel)) {
+      throw new Error(`${route} is missing the bottom England RegisterPrep link.`);
     }
-    const registerPrepLinks = html.split('href="https://registerprep.vercel.app/"').length - 1;
+    const registerPrepLinks = html.split(registerPrepHref).length - 1;
     if (registerPrepLinks !== 1) {
       throw new Error(`${route} should contain one RegisterPrep link, found ${registerPrepLinks}.`);
+    }
+    const linkAt = html.indexOf(registerPrepHref);
+    const nativeAt = html.indexOf('data-ad-slot="native-above-footer"');
+    const footerAt = html.indexOf('aria-label="Policies"');
+    if (!(nativeAt !== -1 && nativeAt < linkAt && linkAt < footerAt)) {
+      throw new Error(`${route} RegisterPrep link must sit below the native ad and above the footer.`);
+    }
+    if (html.includes('offers landlord registration guides')) {
+      throw new Error(`${route} still includes the removed RegisterPrep card copy.`);
     }
     if (!html.includes(logoName) || html.includes('Possible Property Hub Logo')) {
       throw new Error(`${route} still points at the old logo filename.`);
