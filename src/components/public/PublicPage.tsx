@@ -2,6 +2,7 @@ import { Building2, CreditCard, Wrench } from 'lucide-react';
 import { AdsterraRectangle } from '../AdsterraBanner';
 import { AdsterraNative } from '../AdsterraNative';
 import { LOGO_PATH } from '../../seo/site';
+import { EnglandLandlordLink } from './EnglandLandlordNote';
 import { DisclaimerPage, FaqPage, PrivacyPage, TermsPage } from './legalPages';
 
 /**
@@ -11,6 +12,7 @@ import { DisclaimerPage, FaqPage, PrivacyPage, TermsPage } from './legalPages';
  */
 export function PublicPage({ path, signedIn }: { path: string; signedIn: boolean }) {
   const showAds = path === '/' || path === '/welcome';
+  const showEnglandLink = path === '/' || path === '/welcome';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -47,6 +49,7 @@ export function PublicPage({ path, signedIn }: { path: string; signedIn: boolean
       </main>
 
       {showAds && <AdsterraNative />}
+      {showEnglandLink && <EnglandLandlordLink />}
       <PublicFooter />
     </div>
   );
