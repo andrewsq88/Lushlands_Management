@@ -111,14 +111,18 @@ export function useProperties() {
       id,
       updates,
       async () => {
-        const { data, error } = await supabase
-          .from('properties')
-          .update(updates)
-          .eq('id', id)
-          .select()
-          .single();
-        if (error || !data) return { data: null, error: error ?? new Error('Property update failed') };
-        return { data, error: null };
+        try {
+          const { data, error } = await supabase
+            .from('properties')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+          if (error || !data) return { data: null, error: error ?? new Error('Property update failed') };
+          return { data, error: null };
+        } catch (error) {
+          return { data: null, error };
+        }
       },
       "Couldn't update the property. The previous value was restored.",
     );

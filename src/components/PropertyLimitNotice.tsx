@@ -4,9 +4,10 @@ import { FREE_PROPERTY_LIMIT_MESSAGE } from '../lib/propertyLimit';
 
 interface PropertyLimitNoticeProps {
   onUpgrade: () => Promise<void>;
+  id?: string;
 }
 
-export function PropertyLimitNotice({ onUpgrade }: PropertyLimitNoticeProps) {
+export function PropertyLimitNotice({ onUpgrade, id = 'property-limit-notice' }: PropertyLimitNoticeProps) {
   const [busy, setBusy] = useState(false);
   const [upgradeError, setUpgradeError] = useState('');
 
@@ -24,7 +25,7 @@ export function PropertyLimitNotice({ onUpgrade }: PropertyLimitNoticeProps) {
 
   return (
     <div
-      id="property-limit-notice"
+      id={id}
       role="status"
       className="bg-amber-50 border border-amber-200 rounded-xl p-4 sm:p-5"
     >

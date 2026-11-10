@@ -43,7 +43,7 @@ async function applyOptimistic<T extends { id: string }>(
   const previous = collection.getById(id);
   if (!previous) {
     try {
-      const result = await write();
+      const result = await runWrite(write);
       if (result.error || !result.data) {
         const error = result.error ?? new Error(fallback);
         console.error(fallback, error);
@@ -62,7 +62,7 @@ async function applyOptimistic<T extends { id: string }>(
   collection.beginWrite();
   collection.patch(id, updates);
   try {
-    const result = await write();
+    const result = await runWrite(write);
     if (result.error || !result.data) {
       collection.restore(id, previous);
       const error = result.error ?? new Error(fallback);
@@ -79,5 +79,13 @@ async function applyOptimistic<T extends { id: string }>(
     return { data: null, error };
   } finally {
     collection.endWrite();
+  }
+}
+
+async function runWrite<T>(write: () => Promise<WriteResult<T>>): Promise<WriteResult<T>> {
+  try {
+    return await write();
+  } catch (error) {
+    return { data: null, error };
   }
 }

@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Home, LogOut, User, Users, DollarSign, TrendingUp, PiggyBank, Wrench, CreditCard } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { LOGO_PATH } from '../seo/site';
+import { ToastViewport } from './ToastViewport';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -108,6 +109,7 @@ export function Layout({ children }: LayoutProps) {
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {children}
       </main>
+      <ToastViewport />
     </div>
   );
 }
