@@ -405,7 +405,7 @@ try {
   const seenTitles = new Map();
   const seenDescriptions = new Map();
   const softwareDescription =
-    'Web software for landlords and property managers to record properties, occupants, maintenance, and payments. A free plan is available. Premium is 15 US dollars per month.';
+    'Web software for landlords and property managers to record properties, occupants, maintenance, and payments. Free covers up to 5 properties. Premium is unlimited.';
 
   function attrValues(html, pattern) {
     return [...html.matchAll(pattern)].map((match) => match[1]);

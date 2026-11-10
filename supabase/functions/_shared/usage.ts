@@ -21,7 +21,7 @@ export async function checkLimit(userId: string, feature: Feature): Promise<stri
     .select('subscription_type,status')
     .eq('user_id', userId)
     .maybeSingle();
-  if (sub?.subscription_type === 'premium' && sub?.status === 'active') return null;
+  if (sub?.subscription_type === 'premium' && (sub.status === 'active' || sub.status === 'trialing')) return null;
 
   const { data: logs, error } = await db
     .from('premium_usage_logs')

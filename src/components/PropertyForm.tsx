@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useProperties } from '../hooks/useProperties';
+import { useSubscription } from '../hooks/useSubscription';
+import { PropertyLimitNotice } from './PropertyLimitNotice';
+import { isFreePropertyLimitError } from '../lib/propertyLimit';
 
 interface PropertyFormProps {
   property?: any;
@@ -9,8 +12,9 @@ interface PropertyFormProps {
 
 export function PropertyForm({ property, onClose }: PropertyFormProps) {
   const { addProperty, updateProperty } = useProperties();
+  const { createPremiumSubscription } = useSubscription();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<unknown>('');
   
   const [formData, setFormData] = useState({
     address: '',
@@ -60,7 +64,7 @@ export function PropertyForm({ property, onClose }: PropertyFormProps) {
         : await addProperty(propertyData);
 
       if (error) {
-        setError(error.message);
+        setError(error);
       } else {
         onClose();
       }
@@ -94,11 +98,17 @@ export function PropertyForm({ property, onClose }: PropertyFormProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
+          {isFreePropertyLimitError(error) ? (
+            <PropertyLimitNotice onUpgrade={createPremiumSubscription} />
+          ) : error ? (
             <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600">{error}</p>
+              <p className="text-sm text-red-600">
+                {typeof error === 'object' && error && 'message' in error
+                  ? String((error as { message?: string }).message || 'Could not save this property')
+                  : String(error)}
+              </p>
             </div>
-          )}
+          ) : null}
 
           <div>
             <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">

@@ -55,6 +55,7 @@ export function SubscriptionManager() {
   }
 
   const features = [
+    'Unlimited properties',
     'Unlimited AI Voiceovers',
     'Unlimited AI Video Messages'
   ];
@@ -79,8 +80,8 @@ export function SubscriptionManager() {
               </h3>
               <p className="text-sm text-gray-600">
                 {isPremium 
-                  ? 'You have access to all premium features'
-                  : 'Limited access to basic features'
+                  ? 'Unlimited properties, plus every premium feature'
+                  : 'Up to 5 properties'
                 }
               </p>
               {subscription && (
