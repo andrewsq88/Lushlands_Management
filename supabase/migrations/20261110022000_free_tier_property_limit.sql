@@ -9,11 +9,13 @@
   (src/hooks/useSubscription.ts):
 
     user_subscriptions.subscription_type = 'premium'
-    AND user_subscriptions.status = 'active'
+    AND user_subscriptions.status IN ('active', 'trialing')
 
-  That row is written by the Stripe subscription webhooks and the
-  create-subscription function. A missing row, or any other status
-  (free, canceled, past_due, incomplete), is treated as free.
+  The Stripe subscription webhooks and create-subscription write
+  subscription_type = 'premium' and status = the Stripe subscription
+  status. A 7-day trial is status 'trialing'. The status check is
+  widened so that value can be stored. A missing row, or any other
+  status (free, canceled, past_due, incomplete), is treated as free.
 
   Existing rows are not deleted, hidden, or locked. This is a BEFORE INSERT
   trigger only, so UPDATE and DELETE of properties a free account already
@@ -43,7 +45,7 @@ BEGIN
     FROM public.user_subscriptions
     WHERE user_id = NEW.user_id
       AND subscription_type = 'premium'
-      AND status = 'active'
+      AND status IN ('active', 'trialing')
   )
   INTO is_premium;
 
@@ -67,6 +69,16 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+-- Stripe writes status 'trialing' during the Premium payment-link trial.
+-- The original check rejected that value, so the webhook upsert failed
+-- and the account stayed on the free row.
+ALTER TABLE public.user_subscriptions
+  DROP CONSTRAINT IF EXISTS user_subscriptions_status_check;
+
+ALTER TABLE public.user_subscriptions
+  ADD CONSTRAINT user_subscriptions_status_check
+  CHECK (status IN ('active', 'trialing', 'canceled', 'past_due', 'incomplete'));
 
 REVOKE ALL ON FUNCTION public.enforce_free_property_limit() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.enforce_free_property_limit() FROM anon, authenticated;

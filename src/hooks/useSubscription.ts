@@ -223,7 +223,8 @@ export function useSubscription() {
     fetchSubscription();
   }, []);
 
-  const isPremium = subscription?.subscription_type === 'premium' && subscription?.status === 'active';
+  const isPremium = subscription?.subscription_type === 'premium'
+    && (subscription.status === 'active' || subscription.status === 'trialing');
   const isActive = subscription?.status === 'active';
 
   return {
