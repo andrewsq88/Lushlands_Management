@@ -35,16 +35,19 @@ const REQUIRED_HEAD = [
 ];
 
 function requiredHead(page) {
+  const base = [...REQUIRED_HEAD, '"@type":"Organization"', '"@type":"WebSite"'];
   if (page.path.startsWith('/guides/')) {
     return [
-      ...REQUIRED_HEAD,
+      ...base,
       '"@type":"Article"',
       '"@type":"FAQPage"',
       '"@type":"HowTo"',
       '"@type":"BreadcrumbList"',
     ];
   }
-  return [...REQUIRED_HEAD, '"@type":"Organization"', '"@type":"SoftwareApplication"', '"@type":"FAQPage"'];
+  const tokens = [...base, '"@type":"SoftwareApplication"'];
+  if (page.path === '/faq') tokens.push('"@type":"FAQPage"');
+  return tokens;
 }
 
 function inject(template, page) {
@@ -396,6 +399,153 @@ try {
   }
   if (spa.includes('Start tracking rent') || spa.includes('Try LushLands')) {
     throw new Error('spa.html must not include the public guides.');
+  }
+
+  const origin = 'https://www.lushlandsmanagement.com';
+  const seenTitles = new Map();
+  const seenDescriptions = new Map();
+  const softwareDescription =
+    'Web software for landlords and property managers to record properties, occupants, maintenance, and payments. A free plan is available. Premium is 15 US dollars per month.';
+
+  function attrValues(html, pattern) {
+    return [...html.matchAll(pattern)].map((match) => match[1]);
+  }
+
+  function markupHas(html, value) {
+    const escaped = value
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    return html.includes(value) || html.includes(escaped);
+  }
+
+  function oneValue(html, pattern, label, filePath) {
+    const values = attrValues(html, pattern);
+    if (values.length !== 1) {
+      throw new Error(`${filePath} has ${values.length} ${label} tags`);
+    }
+    return values[0];
+  }
+
+  for (const page of pages) {
+    const filePath = page.path === '/' ? 'index.html' : `${page.path.slice(1)}/index.html`;
+    const html = fs.readFileSync(path.join(dist, filePath), 'utf8');
+    const expectedCanonical = page.path === '/' ? `${origin}/` : `${origin}${page.path}`;
+    const title = oneValue(html, /<title>([^<]*)<\/title>/g, 'title', page.path);
+    const description = oneValue(html, /<meta name="description" content="([^"]*)"/g, 'description', page.path);
+    const canonical = oneValue(html, /<link rel="canonical" href="([^"]+)"/g, 'canonical', page.path);
+    const ogUrl = oneValue(html, /<meta property="og:url" content="([^"]+)"/g, 'og:url', page.path);
+    const ogTitle = oneValue(html, /<meta property="og:title" content="([^"]+)"/g, 'og:title', page.path);
+    const ogDescription = oneValue(html, /<meta property="og:description" content="([^"]+)"/g, 'og:description', page.path);
+    const twitterUrl = oneValue(html, /<meta name="twitter:url" content="([^"]+)"/g, 'twitter:url', page.path);
+    const twitterTitle = oneValue(html, /<meta name="twitter:title" content="([^"]+)"/g, 'twitter:title', page.path);
+    const twitterDescription = oneValue(html, /<meta name="twitter:description" content="([^"]+)"/g, 'twitter:description', page.path);
+    if (!title.trim() || !description.trim()) {
+      throw new Error(`${page.path} is missing a title or description`);
+    }
+    if (seenTitles.has(title)) {
+      throw new Error(`${page.path} repeats the title of ${seenTitles.get(title)}`);
+    }
+    if (seenDescriptions.has(description)) {
+      throw new Error(`${page.path} repeats the description of ${seenDescriptions.get(description)}`);
+    }
+    seenTitles.set(title, page.path);
+    seenDescriptions.set(description, page.path);
+    if (canonical !== expectedCanonical || ogUrl !== expectedCanonical || twitterUrl !== expectedCanonical) {
+      throw new Error(`${page.path} canonical does not match its own www URL`);
+    }
+    if (ogTitle !== title || twitterTitle !== title || ogDescription !== description || twitterDescription !== description) {
+      throw new Error(`${page.path} Open Graph or Twitter tags conflict with the title or description`);
+    }
+
+    const jsonScripts = [...html.matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)];
+    if (jsonScripts.length !== 1) {
+      throw new Error(`${page.path} has ${jsonScripts.length} JSON-LD scripts`);
+    }
+    let data;
+    try {
+      data = JSON.parse(jsonScripts[0][1]);
+    } catch (error) {
+      throw new Error(`${page.path} JSON-LD does not parse: ${error.message}`);
+    }
+    const graph = data['@graph'];
+    if (!Array.isArray(graph)) {
+      throw new Error(`${page.path} JSON-LD is missing @graph`);
+    }
+    const byType = new Map();
+    for (const node of graph) {
+      const key = node['@type'];
+      if (byType.has(key)) {
+        throw new Error(`${page.path} has more than one ${key} node`);
+      }
+      byType.set(key, node);
+    }
+    const organization = byType.get('Organization');
+    const website = byType.get('WebSite');
+    if (!organization || organization.name !== 'LushLands Management' || organization.url !== `${origin}/` || organization.logo !== `${origin}/possible-property-hub-logo.png`) {
+      throw new Error(`${page.path} Organization JSON-LD is missing a published fact`);
+    }
+    if (organization.sameAs || organization.contactPoint || organization.email) {
+      throw new Error(`${page.path} Organization JSON-LD invented contact or social details`);
+    }
+    if (!website || website.name !== 'LushLands Management' || website.url !== `${origin}/` || website.publisher?.['@id'] !== `${origin}/#organization`) {
+      throw new Error(`${page.path} WebSite JSON-LD is incomplete`);
+    }
+    if (website.sameAs || website.potentialAction) {
+      throw new Error(`${page.path} WebSite JSON-LD invented a profile or search action`);
+    }
+    const hasFaqSection = page.path === '/faq' || page.path.startsWith('/guides/');
+    const faq = byType.get('FAQPage');
+    if (hasFaqSection) {
+      if (!faq || !Array.isArray(faq.mainEntity) || faq.mainEntity.length < 1) {
+        throw new Error(`${page.path} is missing FAQPage questions`);
+      }
+      for (const question of faq.mainEntity) {
+        const answer = question.acceptedAnswer?.text;
+        if (!question.name || !answer || !markupHas(html, question.name) || !markupHas(html, answer)) {
+          throw new Error(`${page.path} FAQPage text does not match the visible FAQ`);
+        }
+      }
+    } else if (faq) {
+      throw new Error(`${page.path} has FAQPage without a visible FAQ section`);
+    }
+    if (page.path.startsWith('/guides/')) {
+      const article = byType.get('Article');
+      const breadcrumb = byType.get('BreadcrumbList');
+      const howTo = byType.get('HowTo');
+      if (!article?.headline || !article.description || !article.datePublished || article.author?.['@id'] !== `${origin}/#organization` || article.publisher?.['@id'] !== `${origin}/#organization`) {
+        throw new Error(`${page.path} Article JSON-LD is incomplete`);
+      }
+      if (!markupHas(html, article.headline) || !markupHas(html, article.description)) {
+        throw new Error(`${page.path} Article JSON-LD does not match the visible heading or summary`);
+      }
+      const crumbs = breadcrumb?.itemListElement;
+      if (!Array.isArray(crumbs) || crumbs.length !== 2 || crumbs[0].name !== 'Home' || crumbs[0].item !== `${origin}/` || crumbs[1].item !== expectedCanonical) {
+        throw new Error(`${page.path} BreadcrumbList does not match the visible breadcrumb`);
+      }
+      if (!howTo?.name || howTo.name !== article.headline || !Array.isArray(howTo.step) || howTo.step.some((step) => {
+        const detail = step.text?.startsWith(`${step.name} `) ? step.text.slice(step.name.length + 1) : '';
+        return !step.name || !detail || !markupHas(html, step.name) || !markupHas(html, detail);
+      })) {
+        throw new Error(`${page.path} HowTo JSON-LD does not match the numbered steps`);
+      }
+      if (byType.has('SoftwareApplication')) {
+        throw new Error(`${page.path} must not add the application pricing block`);
+      }
+    } else {
+      const software = byType.get('SoftwareApplication');
+      if (!software || software.description !== softwareDescription) {
+        throw new Error(`${page.path} changed the existing application description`);
+      }
+    }
+  }
+
+  if ((spa.match(/<link rel="canonical"/g) ?? []).length !== 1) {
+    throw new Error('spa.html does not have exactly one canonical');
+  }
+  if (spa.includes('name="robots"') || spa.includes('noindex')) {
+    throw new Error('spa.html robots meta changed');
   }
 
   console.log(`Prerendered ${pages.length} public pages and wrote sitemap.xml`);

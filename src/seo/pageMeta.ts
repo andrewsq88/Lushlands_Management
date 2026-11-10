@@ -24,17 +24,18 @@ export interface PageMetaValues {
 
 export { OG_IMAGE, SITE_ORIGIN } from './site';
 
-const JSON_LD = publicJsonLdText();
-
 function canonicalFor(path: PublicPath): string {
   return path === '/' ? `${SITE_ORIGIN}/` : `${SITE_ORIGIN}${path}`;
 }
 
-function page(values: Omit<PageMetaValues, 'canonical' | 'jsonLd'>): PageMetaValues {
+function page(
+  values: Omit<PageMetaValues, 'canonical' | 'jsonLd'>,
+  options?: { includeFaq?: boolean },
+): PageMetaValues {
   return {
     ...values,
     canonical: canonicalFor(values.path),
-    jsonLd: JSON_LD,
+    jsonLd: publicJsonLdText({ includeFaq: options?.includeFaq === true }),
   };
 }
 
@@ -62,8 +63,6 @@ export const HOME_PAGE_HEAD: PageMetaValues = page({
   title: 'LushLands Management - Professional Property Management Platform',
   description:
     'Property management software for landlords and property managers in any country. Record properties, tenants, maintenance, and payments in one place, with optional audio and video tools.',
-  socialDescription:
-    'Property management software for landlords and property managers in any country. Record properties, tenants, maintenance, and payments in one place.',
   keywords: 'property management, landlord, property manager, letting agent, tenant, maintenance, payments',
 });
 
@@ -81,7 +80,7 @@ export const FAQ_PAGE_HEAD: PageMetaValues = page({
   title: 'FAQ | LushLands Management',
   description:
     'Answers about LushLands Management for landlords and property managers worldwide, including features, the free plan, Premium, payments, and AI audio.',
-});
+}, { includeFaq: true });
 
 export const TERMS_PAGE_HEAD: PageMetaValues = page({
   path: '/terms',

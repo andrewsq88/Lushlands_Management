@@ -1,59 +1,91 @@
 import { FAQ_ITEMS } from './faq';
 import { OG_IMAGE, SITE_ORIGIN } from './site';
 
-/** Organization, SoftwareApplication, and FAQPage for every public document. */
-export function publicJsonLd(): Record<string, unknown> {
+export const ORGANIZATION_ID = `${SITE_ORIGIN}/#organization`;
+export const WEBSITE_ID = `${SITE_ORIGIN}/#website`;
+
+const ORGANIZATION_DESCRIPTION =
+  'Property management software for landlords and property managers worldwide. Record properties, occupants, maintenance, and payments.';
+
+/** Facts already published on the site: name, canonical origin, and the existing logo file. */
+export function organizationNode(): Record<string, unknown> {
+  return {
+    '@type': 'Organization',
+    '@id': ORGANIZATION_ID,
+    name: 'LushLands Management',
+    url: `${SITE_ORIGIN}/`,
+    logo: OG_IMAGE,
+    description: ORGANIZATION_DESCRIPTION,
+  };
+}
+
+/** Site entity. No social profile, contact point, or search action is published. */
+export function websiteNode(): Record<string, unknown> {
+  return {
+    '@type': 'WebSite',
+    '@id': WEBSITE_ID,
+    name: 'LushLands Management',
+    url: `${SITE_ORIGIN}/`,
+    description: ORGANIZATION_DESCRIPTION,
+    publisher: { '@id': ORGANIZATION_ID },
+  };
+}
+
+function softwareNode(): Record<string, unknown> {
+  return {
+    '@type': 'SoftwareApplication',
+    '@id': `${SITE_ORIGIN}/#software`,
+    name: 'LushLands Management',
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web',
+    url: `${SITE_ORIGIN}/`,
+    description:
+      'Web software for landlords and property managers to record properties, occupants, maintenance, and payments. A free plan is available. Premium is 15 US dollars per month.',
+    isAccessibleForFree: true,
+    offers: {
+      '@type': 'AggregateOffer',
+      lowPrice: '0',
+      highPrice: '15',
+      priceCurrency: 'USD',
+      offerCount: 2,
+    },
+    provider: { '@id': ORGANIZATION_ID },
+  };
+}
+
+function faqNode(): Record<string, unknown> {
+  return {
+    '@type': 'FAQPage',
+    '@id': `${SITE_ORIGIN}/faq#faq`,
+    url: `${SITE_ORIGIN}/faq`,
+    mainEntity: FAQ_ITEMS.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.answer,
+      },
+    })),
+  };
+}
+
+/**
+ * Organization and WebSite are on every public document.
+ * FAQPage is included only for /faq, which renders those questions.
+ * The SoftwareApplication block is the existing application description.
+ */
+export function publicJsonLd({ includeFaq = false } = {}): Record<string, unknown> {
+  const graph = [organizationNode(), websiteNode(), softwareNode()];
+  if (includeFaq) graph.push(faqNode());
   return {
     '@context': 'https://schema.org',
-    '@graph': [
-      {
-        '@type': 'Organization',
-        '@id': `${SITE_ORIGIN}/#organization`,
-        name: 'LushLands Management',
-        url: `${SITE_ORIGIN}/`,
-        logo: OG_IMAGE,
-        description:
-          'Property management software for landlords and property managers worldwide. Record properties, occupants, maintenance, and payments.',
-      },
-      {
-        '@type': 'SoftwareApplication',
-        '@id': `${SITE_ORIGIN}/#software`,
-        name: 'LushLands Management',
-        applicationCategory: 'BusinessApplication',
-        operatingSystem: 'Web',
-        url: `${SITE_ORIGIN}/`,
-        description:
-          'Web software for landlords and property managers to record properties, occupants, maintenance, and payments. A free plan is available. Premium is 15 US dollars per month.',
-        isAccessibleForFree: true,
-        offers: {
-          '@type': 'AggregateOffer',
-          lowPrice: '0',
-          highPrice: '15',
-          priceCurrency: 'USD',
-          offerCount: 2,
-        },
-        provider: { '@id': `${SITE_ORIGIN}/#organization` },
-      },
-      {
-        '@type': 'FAQPage',
-        '@id': `${SITE_ORIGIN}/faq#faq`,
-        url: `${SITE_ORIGIN}/faq`,
-        mainEntity: FAQ_ITEMS.map((item) => ({
-          '@type': 'Question',
-          name: item.question,
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: item.answer,
-          },
-        })),
-      },
-    ],
+    '@graph': graph,
   };
 }
 
 /** JSON text safe to place inside an HTML script element. */
-export function publicJsonLdText(): string {
-  return JSON.stringify(publicJsonLd()).replace(/</g, '\\u003c');
+export function publicJsonLdText(options?: { includeFaq?: boolean }): string {
+  return JSON.stringify(publicJsonLd(options)).replace(/</g, '\\u003c');
 }
 
 

@@ -1,5 +1,6 @@
 import type { PublicPath } from './publicPaths';
 import { OG_IMAGE, SITE_ORIGIN } from './site';
+import { ORGANIZATION_ID, organizationNode, websiteNode } from './structuredData';
 
 /** Day the guide pages were published. */
 export const GUIDE_PUBLISHED = '2026-11-10';
@@ -315,6 +316,8 @@ export function guideJsonLdFor(guide: Guide): string {
   const graph = {
     '@context': 'https://schema.org',
     '@graph': [
+      organizationNode(),
+      websiteNode(),
       {
         '@type': 'BreadcrumbList',
         '@id': `${canonical}#breadcrumb`,
@@ -366,20 +369,8 @@ export function guideJsonLdFor(guide: Guide): string {
         url: canonical,
         mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
         image: OG_IMAGE,
-        author: {
-          '@type': 'Organization',
-          name: 'LushLands Management',
-          url: `${SITE_ORIGIN}/`,
-        },
-        publisher: {
-          '@type': 'Organization',
-          name: 'LushLands Management',
-          url: `${SITE_ORIGIN}/`,
-          logo: {
-            '@type': 'ImageObject',
-            url: OG_IMAGE,
-          },
-        },
+        author: { '@id': ORGANIZATION_ID },
+        publisher: { '@id': ORGANIZATION_ID },
       },
     ],
   };
