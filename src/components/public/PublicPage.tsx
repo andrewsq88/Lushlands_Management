@@ -54,6 +54,14 @@ export function PublicPage({ path, signedIn }: { path: string; signedIn: boolean
 
 const textLink = 'text-blue-600 hover:text-blue-700';
 
+const otherSiteLink =
+  'inline-block rounded-sm px-1 py-1 text-gray-700 underline decoration-gray-400 underline-offset-2 hover:text-blue-600 hover:decoration-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50';
+
+const DAILY_PULSE_HREF =
+  'https://thedailypulse.space/?utm_source=lushlands&utm_medium=crosslink&utm_campaign=footer-2026-11';
+const WEEKLY_MEAL_PLAN_HREF =
+  'https://weeklymealplan.space/?utm_source=lushlands&utm_medium=crosslink&utm_campaign=footer-2026-11';
+
 function PageBody({ path }: { path: string }) {
   if (path === '/') return <HomeBody />;
   if (path === '/welcome') return <WelcomeBody />;
@@ -264,6 +272,19 @@ function PublicFooter() {
         <a href="/terms" className="hover:text-blue-600">Terms</a>
         <a href="/privacy" className="hover:text-blue-600">Privacy</a>
         <a href="/disclaimer" className="hover:text-blue-600">Disclaimer</a>
+      </nav>
+      <nav aria-labelledby="explore-other-sites" className="mt-6">
+        <h2 id="explore-other-sites" className="text-sm font-medium text-gray-700">
+          Explore our other sites
+        </h2>
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+          <a href={DAILY_PULSE_HREF} className={otherSiteLink}>
+            The Daily Pulse
+          </a>
+          <a href={WEEKLY_MEAL_PLAN_HREF} className={otherSiteLink}>
+            Weekly Meal Plan
+          </a>
+        </div>
       </nav>
     </footer>
   );

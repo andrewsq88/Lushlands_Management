@@ -117,6 +117,13 @@ try {
   if (spa.includes('data-ssg="true"') || !spa.includes('data-prerender-slot="app"')) {
     throw new Error('spa.html must stay an empty shell.');
   }
+  if (
+    spa.includes('thedailypulse.space') ||
+    spa.includes('weeklymealplan.space') ||
+    spa.includes('Explore our other sites')
+  ) {
+    throw new Error('spa.html must not include the public other-sites footer.');
+  }
 
   const verification = 'name="google-site-verification" content="fJ2D1sGWNNQ-R0gu8Z7nXCsMms8ea330BGCVDrzniMs"';
   if (!shell.includes(verification) || !spa.includes(verification)) {
@@ -159,6 +166,32 @@ try {
   if (!llmsType.toLowerCase().startsWith('text/plain')) {
     throw new Error('/llms.txt must declare Content-Type text/plain.');
   }
+
+  const indexNowKey = 'aa07e5ec709905f895fcccc55555a4c9';
+  const indexNowFile = `${indexNowKey}.txt`;
+  const indexNowPath = `/${indexNowFile}`;
+  const indexNowBody = fs.readFileSync(path.join(dist, indexNowFile));
+  if (!indexNowBody.equals(Buffer.from(indexNowKey))) {
+    throw new Error(`${indexNowFile} must be the key alone, with no trailing newline.`);
+  }
+  if (/<!doctype|<html|id="root"|<script/i.test(indexNowBody.toString('utf8'))) {
+    throw new Error(`${indexNowFile} must be plain text, not the SPA shell.`);
+  }
+  if (rewritePattern.test(indexNowPath)) {
+    throw new Error(`SPA rewrite still matches ${indexNowPath}.`);
+  }
+  const indexNowType = vercel.headers
+    ?.find((rule) => rule.source === indexNowPath)
+    ?.headers?.find((header) => header.key.toLowerCase() === 'content-type')?.value ?? '';
+  if (!indexNowType.toLowerCase().startsWith('text/plain')) {
+    throw new Error(`${indexNowPath} must declare Content-Type text/plain.`);
+  }
+
+  const dailyPulseHref =
+    'href="https://thedailypulse.space/?utm_source=lushlands&amp;utm_medium=crosslink&amp;utm_campaign=footer-2026-11"';
+  const weeklyMealPlanHref =
+    'href="https://weeklymealplan.space/?utm_source=lushlands&amp;utm_medium=crosslink&amp;utm_campaign=footer-2026-11"';
+  const otherSitesTitle = 'Explore our other sites';
 
   const aiCrawlers = ['GPTBot', 'OAI-SearchBot', 'ClaudeBot', 'PerplexityBot', 'Google-Extended'];
   for (const bot of aiCrawlers) {
@@ -207,6 +240,12 @@ try {
     if (!html.includes(verification)) {
       throw new Error(`${route} dropped google-site-verification.`);
     }
+    if (!html.includes(otherSitesTitle) || !html.includes(dailyPulseHref) || !html.includes(weeklyMealPlanHref)) {
+      throw new Error(`${route} is missing the other-sites footer.`);
+    }
+    if (html.split(dailyPulseHref).length - 1 !== 1 || html.split(weeklyMealPlanHref).length - 1 !== 1) {
+      throw new Error(`${route} must contain each other-sites link once.`);
+    }
     if (!/any country/i.test(html) || !/property managers/i.test(html)) {
       throw new Error(`${route} is missing the landlord and international copy.`);
     }
@@ -221,6 +260,9 @@ try {
     const html = fs.readFileSync(path.join(dist, route, 'index.html'), 'utf8');
     if (html.includes('data-ad-slot=')) {
       throw new Error(`${route} must not include an ad slot.`);
+    }
+    if (!html.includes(otherSitesTitle) || !html.includes(dailyPulseHref) || !html.includes(weeklyMealPlanHref)) {
+      throw new Error(`${route} is missing the other-sites footer.`);
     }
     if (!html.includes(verification)) {
       throw new Error(`${route} dropped google-site-verification.`);

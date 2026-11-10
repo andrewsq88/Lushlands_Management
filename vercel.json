@@ -12,7 +12,7 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!llms\\.txt).*)",
+      "source": "/((?!llms\\.txt|aa07e5ec709905f895fcccc55555a4c9\\.txt).*)",
       "destination": "/spa.html"
     }
   ],
@@ -73,6 +73,15 @@
     },
     {
       "source": "/llms.txt",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/aa07e5ec709905f895fcccc55555a4c9.txt",
       "headers": [
         {
           "key": "Content-Type",
