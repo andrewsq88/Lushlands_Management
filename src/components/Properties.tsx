@@ -5,10 +5,12 @@ import { useSubscription } from '../hooks/useSubscription';
 import { usePremiumFeatures } from '../hooks/usePremiumFeatures';
 import { PropertyForm } from './PropertyForm';
 import { PropertyPhotosModal } from './PropertyPhotosModal';
+import { PropertyLimitNotice } from './PropertyLimitNotice';
+import { FREE_PROPERTY_LIMIT } from '../lib/propertyLimit';
 
 export function Properties() {
   const { properties, loading, deleteProperty, updateProperty } = useProperties();
-  const { isPremium, getRemainingUsage } = useSubscription();
+  const { isPremium, loading: subscriptionLoading, getRemainingUsage, createPremiumSubscription } = useSubscription();
   const { 
     generateVoiceover, 
     loading: aiLoading, 
@@ -68,8 +70,18 @@ export function Properties() {
   };
 
   const audioRemaining = getRemainingUsage('voiceover');
+  const atPropertyLimit = !subscriptionLoading && !isPremium && properties.length >= FREE_PROPERTY_LIMIT;
 
-  if (loading) {
+  const openAddForm = () => {
+    if (atPropertyLimit) {
+      document.getElementById('property-limit-notice')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      return;
+    }
+    setEditingProperty(null);
+    setShowForm(true);
+  };
+
+  if (loading || subscriptionLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -85,16 +97,15 @@ export function Properties() {
           <p className="mt-2 text-gray-600">Manage your property portfolio with AI-powered features</p>
         </div>
         <button
-          onClick={() => {
-            setEditingProperty(null);
-            setShowForm(true);
-          }}
+          onClick={openAddForm}
           className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Property
         </button>
       </div>
+
+      {atPropertyLimit && <PropertyLimitNotice onUpgrade={createPremiumSubscription} />}
 
       {/* Search and Filter */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -141,10 +152,7 @@ export function Properties() {
             </p>
             {!searchTerm && statusFilter === 'all' && (
               <button
-                onClick={() => {
-                  setEditingProperty(null);
-                  setShowForm(true);
-                }}
+                onClick={openAddForm}
                 className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <Plus className="h-4 w-4 mr-2" />

@@ -128,14 +128,15 @@ function HomeBody() {
           <li>Create an account or sign in with the email you already use for LushLands.</li>
           <li>Add properties, then attach tenants, maintenance, and payment records to them.</li>
           <li>
-            Stay on the free plan, or upgrade to Premium for 15 US dollars a month if you need more than the
-            free monthly allowance of audio and video.
+            Stay on the free plan, which includes up to 5 properties, or upgrade to monthly Premium for 15 US
+            dollars a month for unlimited properties and a higher audio and video allowance.
           </li>
         </ol>
         <p className="mt-4 text-gray-600 max-w-3xl">
-          On the free plan you can keep the property, tenant, maintenance, and payment records, and generate
-          up to 5 audio clips and 1 video message a month from text you supply. Premium removes those monthly
-          caps. You can cancel Premium from the subscription screen. Any tax on the charge depends on you and
+          On the free plan you can keep up to 5 properties, plus tenant, maintenance, and payment records, and
+          generate up to 5 audio clips and 1 video message a month from text you supply. Monthly Premium has no
+          property limit and removes those monthly caps. You can cancel Premium from the subscription screen.
+          Any tax on the charge depends on you and
           on Stripe. Read the <a className={textLink} href="/disclaimer">disclaimer</a> before you rely on a
           generated clip or on a record in the dashboard.
         </p>
@@ -241,9 +242,10 @@ function WelcomeBody() {
       <section className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-8">
         <h2 className="text-2xl font-semibold text-gray-900">Free plan and Premium</h2>
         <p className="mt-3 text-gray-600 max-w-3xl">
-          The property, tenant, maintenance, and payment records are on the free plan, along with the monthly
-          audio and video allowance above. Premium costs 15 US dollars a month, billed by Stripe, and removes
-          those monthly caps. You can cancel it at any time from the subscription screen. Taxes, if any,
+          The free plan includes up to 5 properties, along with tenant, maintenance, and payment records and the
+          monthly audio and video allowance above. Premium is 15 US dollars a month, billed by Stripe. It has
+          no property limit and removes those monthly caps. You can cancel it at any time from the subscription
+          screen. Taxes, if any,
           depend on your situation and on Stripe.
         </p>
         <p className="mt-3 text-gray-600 max-w-3xl">
