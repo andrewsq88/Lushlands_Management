@@ -1,35 +1,91 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
+import { propertiesCollection } from '../lib/collections';
+import type { Property } from '../lib/collections';
+import { createLoader } from '../lib/liveCollection';
+import { commitOptimistic } from '../lib/optimisticUpdate';
+import { isFreePropertyLimitError } from '../lib/propertyLimit';
+import { retainRealtime } from '../lib/realtime';
+import { errorText, pushErrorToast } from '../lib/toast';
 import { supabase } from '../lib/supabase';
-import { Database } from '../lib/supabase';
+import type { Database } from '../lib/supabase';
 
-type Property = Database['public']['Tables']['properties']['Row'];
 type PropertyInsert = Database['public']['Tables']['properties']['Insert'];
 type PropertyUpdate = Database['public']['Tables']['properties']['Update'];
 
+const loadProperties = createLoader(
+  propertiesCollection,
+  async () => {
+    const { data, error } = await supabase
+      .from('properties')
+      .select('*')
+      .order('created_at', { ascending: false });
+    return { data, error };
+  },
+  'Error fetching properties:',
+);
+
+propertiesCollection.setDirtyFlush(() => {
+  void loadProperties(true);
+});
+
+function onPropertiesChange() {
+  if (propertiesCollection.hasInflightWrites()) {
+    propertiesCollection.markDirty();
+    return;
+  }
+  void loadProperties(true);
+}
+
 export function useProperties() {
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { items: properties, loading } = useSyncExternalStore(
+    propertiesCollection.subscribe,
+    propertiesCollection.getSnapshot,
+    propertiesCollection.getSnapshot,
+  );
 
-  const fetchProperties = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('properties')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setProperties(data || []);
-    } catch (error) {
-      console.error('Error fetching properties:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    void loadProperties();
+    return retainRealtime('properties', onPropertiesChange);
+  }, []);
 
   const addProperty = async (property: Omit<PropertyInsert, 'user_id'>) => {
+    const optimisticId = `pending-${globalThis.crypto?.randomUUID?.() ?? Date.now()}`;
+    let started = false;
+    const rollback = () => {
+      if (propertiesCollection.getById(optimisticId)) propertiesCollection.remove(optimisticId);
+    };
+    const reportFailure = (error: unknown) => {
+      console.error('Error adding property:', error);
+      // The form shows PropertyLimitNotice for this error. A generic toast would cover it.
+      if (!isFreePropertyLimitError(error)) {
+        pushErrorToast(errorText(error, "Couldn't add the property. It was removed."));
+      }
+      return { data: null, error };
+    };
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
+
+      const now = new Date().toISOString();
+      const optimistic: Property = {
+        id: optimisticId,
+        address: property.address,
+        type: property.type,
+        status: property.status ?? 'vacant',
+        rent_amount: property.rent_amount ?? null,
+        bedrooms: property.bedrooms ?? null,
+        bathrooms: property.bathrooms ?? null,
+        square_feet: property.square_feet ?? null,
+        description: property.description ?? null,
+        user_id: user.id,
+        created_at: now,
+        updated_at: now,
+      };
+
+      propertiesCollection.beginWrite();
+      started = true;
+      propertiesCollection.upsert(optimistic);
 
       const { data, error } = await supabase
         .from('properties')
@@ -37,31 +93,35 @@ export function useProperties() {
         .select()
         .single();
 
-      if (error) throw error;
-      setProperties(prev => [data, ...prev]);
+      rollback();
+      if (error || !data) return reportFailure(error ?? new Error('Could not add the property.'));
+      propertiesCollection.upsert(data);
       return { data, error: null };
     } catch (error) {
-      console.error('Error adding property:', error);
-      return { data: null, error };
+      rollback();
+      return reportFailure(error);
+    } finally {
+      if (started) propertiesCollection.endWrite();
     }
   };
 
-  const updateProperty = async (id: string, updates: PropertyUpdate) => {
-    try {
-      const { data, error } = await supabase
-        .from('properties')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      setProperties(prev => prev.map(p => p.id === id ? data : p));
-      return { data, error: null };
-    } catch (error) {
-      console.error('Error updating property:', error);
-      return { data: null, error };
-    }
+  const updateProperty = (id: string, updates: PropertyUpdate) => {
+    return commitOptimistic(
+      propertiesCollection,
+      id,
+      updates,
+      async () => {
+        const { data, error } = await supabase
+          .from('properties')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single();
+        if (error || !data) return { data: null, error: error ?? new Error('Property update failed') };
+        return { data, error: null };
+      },
+      "Couldn't update the property. The previous value was restored.",
+    );
   };
 
   const deleteProperty = async (id: string) => {
@@ -72,7 +132,7 @@ export function useProperties() {
         .eq('id', id);
 
       if (error) throw error;
-      setProperties(prev => prev.filter(p => p.id !== id));
+      propertiesCollection.remove(id);
       return { error: null };
     } catch (error) {
       console.error('Error deleting property:', error);
@@ -80,14 +140,11 @@ export function useProperties() {
     }
   };
 
-  useEffect(() => {
-    fetchProperties();
-  }, []);
-
   const stats = {
     total: properties.length,
-    occupied: properties.filter(p => p.status === 'occupied').length,
-    vacant: properties.filter(p => p.status === 'vacant').length,
+    occupied: properties.filter((property) => property.status === 'occupied').length,
+    vacant: properties.filter((property) => property.status === 'vacant').length,
+    maintenance: properties.filter((property) => property.status === 'maintenance').length,
   };
 
   return {
@@ -97,6 +154,6 @@ export function useProperties() {
     addProperty,
     updateProperty,
     deleteProperty,
-    refetch: fetchProperties,
+    refetch: () => loadProperties(true),
   };
 }

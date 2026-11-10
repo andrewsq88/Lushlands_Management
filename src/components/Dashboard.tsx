@@ -6,21 +6,17 @@ import { PropertyDetailsModal } from './PropertyDetailsModal';
 import { PropertyListModal } from './PropertyListModal';
 import { MaintenanceRequestsListModal } from './MaintenanceRequestsListModal';
 import { MaintenanceDetailsModal } from './MaintenanceDetailsModal';
+import { MaintenancePrioritySelect, PropertyStatusSelect } from './RecordSelects';
+import type { MaintenanceListFilter, PropertyListStatus } from '../lib/recordOptions';
 import { supabase } from '../lib/supabase';
 
 export function Dashboard() {
   const { properties, stats, loading, updateProperty } = useProperties();
-  const { highPriorityRequests, openRequests, loading: maintenanceLoading, updateMaintenanceRequest } = useMaintenanceRequests();
-  const [selectedProperty, setSelectedProperty] = useState(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [selectedMaintenanceRequest, setSelectedMaintenanceRequest] = useState(null);
-  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
-  const [showPropertyListModal, setShowPropertyListModal] = useState(false);
-  const [showMaintenanceListModal, setShowMaintenanceListModal] = useState(false);
-  const [propertyListTitle, setPropertyListTitle] = useState('');
-  const [propertyListData, setPropertyListData] = useState([]);
-  const [maintenanceListTitle, setMaintenanceListTitle] = useState('');
-  const [maintenanceListData, setMaintenanceListData] = useState([]);
+  const { maintenanceRequests, highPriorityRequests, openRequests, loading: maintenanceLoading, updateMaintenanceRequest } = useMaintenanceRequests();
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const [selectedMaintenanceId, setSelectedMaintenanceId] = useState<string | null>(null);
+  const [propertyList, setPropertyList] = useState<{ title: string; status: PropertyListStatus } | null>(null);
+  const [maintenanceList, setMaintenanceList] = useState<{ title: string; filter: MaintenanceListFilter } | null>(null);
   const [showPartnerForm, setShowPartnerForm] = useState(false);
   const [partnerName, setPartnerName] = useState('');
   const [partnerUrl, setPartnerUrl] = useState('');
@@ -65,15 +61,6 @@ export function Dashboard() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const styles = {
-      occupied: 'bg-green-100 text-green-800',
-      vacant: 'bg-yellow-100 text-yellow-800',
-      maintenance: 'bg-red-100 text-red-800',
-    };
-    return styles[status as keyof typeof styles] || 'bg-gray-100 text-gray-800';
-  };
-
   const getPriorityBadge = (priority: string) => {
     const styles = {
       High: 'bg-red-100 text-red-800',
@@ -83,47 +70,30 @@ export function Dashboard() {
     return styles[priority as keyof typeof styles] || 'bg-gray-100 text-gray-800';
   };
 
-  const handlePropertyClick = (property: any) => {
-    setSelectedProperty(property);
-    setShowDetailsModal(true);
+  const selectedProperty = properties.find((property) => property.id === selectedPropertyId) ?? null;
+  const selectedMaintenanceRequest = maintenanceRequests.find((request) => request.id === selectedMaintenanceId) ?? null;
+
+  const handlePropertyClick = (propertyId: string) => {
+    setSelectedPropertyId(propertyId);
   };
 
-  const handleMaintenanceClick = (request: any) => {
-    setSelectedMaintenanceRequest(request);
-    setShowMaintenanceModal(true);
-  };
-
-  const closeModal = () => {
-    setShowDetailsModal(false);
-    setSelectedProperty(null);
-  };
-
-  const closeMaintenanceModal = () => {
-    setShowMaintenanceModal(false);
-    setSelectedMaintenanceRequest(null);
+  const handleMaintenanceClick = (requestId: string) => {
+    setSelectedMaintenanceId(requestId);
   };
 
   const handleStatsCardClick = (type: string) => {
     switch (type) {
       case 'total':
-        setPropertyListTitle('All Properties');
-        setPropertyListData(properties);
-        setShowPropertyListModal(true);
+        setPropertyList({ title: 'All Properties', status: 'all' });
         break;
       case 'occupied':
-        setPropertyListTitle('Occupied Properties');
-        setPropertyListData(properties.filter(p => p.status === 'occupied'));
-        setShowPropertyListModal(true);
+        setPropertyList({ title: 'Occupied Properties', status: 'occupied' });
         break;
       case 'vacant':
-        setPropertyListTitle('Vacant Properties');
-        setPropertyListData(properties.filter(p => p.status === 'vacant'));
-        setShowPropertyListModal(true);
+        setPropertyList({ title: 'Vacant Properties', status: 'vacant' });
         break;
       case 'high-priority':
-        setMaintenanceListTitle('High Priority Maintenance Issues');
-        setMaintenanceListData(highPriorityRequests);
-        setShowMaintenanceListModal(true);
+        setMaintenanceList({ title: 'High Priority Maintenance Issues', filter: 'high-priority' });
         break;
     }
   };
@@ -226,23 +196,18 @@ export function Dashboard() {
                 {recentProperties.map((property) => (
                   <button
                     key={property.id}
-                    onClick={() => handlePropertyClick(property)}
+                    onClick={() => handlePropertyClick(property.id)}
                     className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-blue-50 hover:border-blue-200 border border-transparent transition-all duration-200 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-900">{property.address}</h3>
                       <p className="text-sm text-gray-600 capitalize">{property.type}</p>
                     </div>
-                    <select
+                    <PropertyStatusSelect
                       value={property.status}
-                      onChange={(e) => updateProperty(property.id, { status: e.target.value })}
-                      onClick={(e) => e.stopPropagation()}
-                      className={`text-xs font-medium rounded-full border px-2 py-1 capitalize ${getStatusBadge(property.status)} focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    >
-                      <option value="vacant">Vacant</option>
-                      <option value="occupied">Occupied</option>
-                      <option value="maintenance">Maintenance</option>
-                    </select>
+                      ariaLabel={`Status for ${property.address}`}
+                      onChange={(status) => { void updateProperty(property.id, { status }); }}
+                    />
                   </button>
                 ))}
               </div>
@@ -272,7 +237,7 @@ export function Dashboard() {
                 {highPriorityRequests.slice(0, 5).map((request) => (
                   <button
                     key={request.id}
-                    onClick={() => handleMaintenanceClick(request)}
+                    onClick={() => handleMaintenanceClick(request.id)}
                     className="w-full p-4 bg-red-50 rounded-lg border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all duration-200 text-left focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                   >
                     <div className="flex items-start justify-between">
@@ -321,7 +286,7 @@ export function Dashboard() {
                 {openRequests.slice(0, 5).map((request) => (
                   <button
                     key={request.id}
-                    onClick={() => handleMaintenanceClick(request)}
+                    onClick={() => handleMaintenanceClick(request.id)}
                     className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-blue-50 hover:border-blue-200 border border-transparent transition-all duration-200 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
                     <div className="flex-1">
@@ -332,16 +297,11 @@ export function Dashboard() {
                         {request.properties?.address}
                       </p>
                     </div>
-                    <select
+                    <MaintenancePrioritySelect
                       value={request.priority}
-                      onChange={(e) => updateMaintenanceRequest(request.id, { priority: e.target.value })}
-                      onClick={(e) => e.stopPropagation()}
-                      className={`text-xs font-medium rounded-full border px-2 py-1 ${getPriorityBadge(request.priority)} focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    >
-                      <option value="High">High</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Low">Low</option>
-                    </select>
+                      ariaLabel={`Priority for ${request.description}`}
+                      onChange={(priority) => { void updateMaintenanceRequest(request.id, { priority }); }}
+                    />
                   </button>
                 ))}
               </div>
@@ -443,37 +403,33 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Property Details Modal */}
-      {showDetailsModal && selectedProperty && (
+      {selectedProperty && (
         <PropertyDetailsModal
           property={selectedProperty}
-          onClose={closeModal}
+          onClose={() => setSelectedPropertyId(null)}
         />
       )}
 
-      {/* Maintenance Details Modal */}
-      {showMaintenanceModal && selectedMaintenanceRequest && (
+      {selectedMaintenanceRequest && (
         <MaintenanceDetailsModal
           maintenanceRequest={selectedMaintenanceRequest}
-          onClose={closeMaintenanceModal}
+          onClose={() => setSelectedMaintenanceId(null)}
         />
       )}
 
-      {/* Property List Modal */}
-      {showPropertyListModal && (
+      {propertyList && (
         <PropertyListModal
-          title={propertyListTitle}
-          properties={propertyListData}
-          onClose={() => setShowPropertyListModal(false)}
+          title={propertyList.title}
+          status={propertyList.status}
+          onClose={() => setPropertyList(null)}
         />
       )}
 
-      {/* Maintenance Requests List Modal */}
-      {showMaintenanceListModal && (
+      {maintenanceList && (
         <MaintenanceRequestsListModal
-          title={maintenanceListTitle}
-          maintenanceRequests={maintenanceListData}
-          onClose={() => setShowMaintenanceListModal(false)}
+          title={maintenanceList.title}
+          filter={maintenanceList.filter}
+          onClose={() => setMaintenanceList(null)}
         />
       )}
     </div>

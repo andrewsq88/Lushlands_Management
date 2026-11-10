@@ -1,40 +1,62 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
+import { maintenanceCollection } from '../lib/collections';
+import type { MaintenanceRequest } from '../lib/collections';
+import { createLoader } from '../lib/liveCollection';
+import { commitOptimistic } from '../lib/optimisticUpdate';
+import { retainRealtime } from '../lib/realtime';
 import { supabase } from '../lib/supabase';
-import { Database } from '../lib/supabase';
+import type { Database } from '../lib/supabase';
 
-type MaintenanceRequest = Database['public']['Tables']['maintenance_requests']['Row'];
 type MaintenanceRequestInsert = Database['public']['Tables']['maintenance_requests']['Insert'];
 type MaintenanceRequestUpdate = Database['public']['Tables']['maintenance_requests']['Update'];
 
+const requestSelect = `
+  *,
+  tenants (
+    name,
+    email
+  ),
+  properties (
+    address,
+    type
+  )
+`;
+
+const loadMaintenanceRequests = createLoader(
+  maintenanceCollection,
+  async () => {
+    const { data, error } = await supabase
+      .from('maintenance_requests')
+      .select(requestSelect)
+      .order('created_at', { ascending: false });
+    return { data: data as MaintenanceRequest[] | null, error };
+  },
+  'Error fetching maintenance requests:',
+);
+
+maintenanceCollection.setDirtyFlush(() => {
+  void loadMaintenanceRequests(true);
+});
+
+function onMaintenanceChange() {
+  if (maintenanceCollection.hasInflightWrites()) {
+    maintenanceCollection.markDirty();
+    return;
+  }
+  void loadMaintenanceRequests(true);
+}
+
 export function useMaintenanceRequests() {
-  const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { items: maintenanceRequests, loading } = useSyncExternalStore(
+    maintenanceCollection.subscribe,
+    maintenanceCollection.getSnapshot,
+    maintenanceCollection.getSnapshot,
+  );
 
-  const fetchMaintenanceRequests = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('maintenance_requests')
-        .select(`
-          *,
-          tenants (
-            name,
-            email
-          ),
-          properties (
-            address,
-            type
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setMaintenanceRequests(data || []);
-    } catch (error) {
-      console.error('Error fetching maintenance requests:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    void loadMaintenanceRequests();
+    return retainRealtime('maintenance_requests', onMaintenanceChange);
+  }, []);
 
   const addMaintenanceRequest = async (request: Omit<MaintenanceRequestInsert, 'user_id' | 'priority'>) => {
     try {
@@ -49,7 +71,7 @@ export function useMaintenanceRequests() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          description: request.description
+          description: request.description,
         }),
       });
 
@@ -61,26 +83,16 @@ export function useMaintenanceRequests() {
 
       const { data, error } = await supabase
         .from('maintenance_requests')
-        .insert([{ 
-          ...request, 
+        .insert([{
+          ...request,
           user_id: user.id,
-          priority 
+          priority,
         }])
-        .select(`
-          *,
-          tenants (
-            name,
-            email
-          ),
-          properties (
-            address,
-            type
-          )
-        `)
+        .select(requestSelect)
         .single();
 
       if (error) throw error;
-      setMaintenanceRequests(prev => [data, ...prev]);
+      maintenanceCollection.upsert(data as MaintenanceRequest);
       return { data, error: null };
     } catch (error) {
       console.error('Error adding maintenance request:', error);
@@ -88,32 +100,23 @@ export function useMaintenanceRequests() {
     }
   };
 
-  const updateMaintenanceRequest = async (id: string, updates: MaintenanceRequestUpdate) => {
-    try {
-      const { data, error } = await supabase
-        .from('maintenance_requests')
-        .update(updates)
-        .eq('id', id)
-        .select(`
-          *,
-          tenants (
-            name,
-            email
-          ),
-          properties (
-            address,
-            type
-          )
-        `)
-        .single();
-
-      if (error) throw error;
-      setMaintenanceRequests(prev => prev.map(r => r.id === id ? data : r));
-      return { data, error: null };
-    } catch (error) {
-      console.error('Error updating maintenance request:', error);
-      return { data: null, error };
-    }
+  const updateMaintenanceRequest = (id: string, updates: MaintenanceRequestUpdate) => {
+    return commitOptimistic(
+      maintenanceCollection,
+      id,
+      updates,
+      async () => {
+        const { data, error } = await supabase
+          .from('maintenance_requests')
+          .update(updates)
+          .eq('id', id)
+          .select(requestSelect)
+          .single();
+        if (error || !data) return { data: null, error: error ?? new Error('Maintenance update failed') };
+        return { data: data as MaintenanceRequest, error: null };
+      },
+      "Couldn't update the maintenance request. The previous value was restored.",
+    );
   };
 
   const deleteMaintenanceRequest = async (id: string) => {
@@ -124,7 +127,7 @@ export function useMaintenanceRequests() {
         .eq('id', id);
 
       if (error) throw error;
-      setMaintenanceRequests(prev => prev.filter(r => r.id !== id));
+      maintenanceCollection.remove(id);
       return { error: null };
     } catch (error) {
       console.error('Error deleting maintenance request:', error);
@@ -132,12 +135,8 @@ export function useMaintenanceRequests() {
     }
   };
 
-  useEffect(() => {
-    fetchMaintenanceRequests();
-  }, []);
-
-  const highPriorityRequests = maintenanceRequests.filter(r => r.priority === 'High' && r.status === 'Open');
-  const openRequests = maintenanceRequests.filter(r => r.status === 'Open');
+  const highPriorityRequests = maintenanceRequests.filter((request) => request.priority === 'High' && request.status === 'Open');
+  const openRequests = maintenanceRequests.filter((request) => request.status === 'Open');
 
   return {
     maintenanceRequests,
@@ -147,6 +146,6 @@ export function useMaintenanceRequests() {
     addMaintenanceRequest,
     updateMaintenanceRequest,
     deleteMaintenanceRequest,
-    refetch: fetchMaintenanceRequests,
+    refetch: () => loadMaintenanceRequests(true),
   };
 }

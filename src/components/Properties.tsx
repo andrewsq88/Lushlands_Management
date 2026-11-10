@@ -6,7 +6,9 @@ import { usePremiumFeatures } from '../hooks/usePremiumFeatures';
 import { PropertyForm } from './PropertyForm';
 import { PropertyPhotosModal } from './PropertyPhotosModal';
 import { PropertyLimitNotice } from './PropertyLimitNotice';
+import { PropertyStatusSelect } from './RecordSelects';
 import { FREE_PROPERTY_LIMIT } from '../lib/propertyLimit';
+import { PROPERTY_STATUS_OPTIONS } from '../lib/recordOptions';
 
 export function Properties() {
   const { properties, loading, deleteProperty, updateProperty } = useProperties();
@@ -58,15 +60,6 @@ export function Properties() {
       setGeneratedAudio(audioUrl);
       setAudioText(''); // Clear input after successful generation
     }
-  };
-
-  const getStatusBadge = (status: string) => {
-    const styles = {
-      occupied: 'bg-green-100 text-green-800',
-      vacant: 'bg-yellow-100 text-yellow-800',
-      maintenance: 'bg-red-100 text-red-800',
-    };
-    return styles[status as keyof typeof styles] || 'bg-gray-100 text-gray-800';
   };
 
   const audioRemaining = getRemainingUsage('voiceover');
@@ -123,14 +116,15 @@ export function Properties() {
           <div className="relative">
             <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <select
+              aria-label="Filter properties by status"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
             >
               <option value="all">All Status</option>
-              <option value="vacant">Vacant</option>
-              <option value="occupied">Occupied</option>
-              <option value="maintenance">Maintenance</option>
+              {PROPERTY_STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -198,15 +192,11 @@ export function Properties() {
                       <div className="text-sm text-gray-600 capitalize">{property.type}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <select
+                      <PropertyStatusSelect
                         value={property.status}
-                        onChange={(e) => updateProperty(property.id, { status: e.target.value })}
-                        className={`text-xs font-medium rounded-full border px-2 py-1 ${getStatusBadge(property.status)} focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      >
-                        <option value="vacant">Vacant</option>
-                        <option value="occupied">Occupied</option>
-                        <option value="maintenance">Maintenance</option>
-                      </select>
+                        ariaLabel={`Status for ${property.address}`}
+                        onChange={(status) => { void updateProperty(property.id, { status }); }}
+                      />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">

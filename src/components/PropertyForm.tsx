@@ -4,6 +4,7 @@ import { useProperties } from '../hooks/useProperties';
 import { useSubscription } from '../hooks/useSubscription';
 import { PropertyLimitNotice } from './PropertyLimitNotice';
 import { isFreePropertyLimitError } from '../lib/propertyLimit';
+import { PROPERTY_STATUS_OPTIONS, PROPERTY_TYPE_OPTIONS } from '../lib/recordOptions';
 
 interface PropertyFormProps {
   property?: any;
@@ -139,11 +140,9 @@ export function PropertyForm({ property, onClose }: PropertyFormProps) {
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="apartment">Apartment</option>
-                <option value="house">House</option>
-                <option value="condo">Condo</option>
-                <option value="townhouse">Townhouse</option>
-                <option value="studio">Studio</option>
+                {PROPERTY_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
               </select>
             </div>
 
@@ -159,9 +158,9 @@ export function PropertyForm({ property, onClose }: PropertyFormProps) {
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="vacant">Vacant</option>
-                <option value="occupied">Occupied</option>
-                <option value="maintenance">Maintenance</option>
+                {PROPERTY_STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
               </select>
             </div>
           </div>

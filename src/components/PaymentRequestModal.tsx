@@ -3,6 +3,7 @@ import { X, Send, ExternalLink, CreditCard, DollarSign } from 'lucide-react';
 import { usePayments } from '../hooks/usePayments';
 import { useTenants } from '../hooks/useTenants';
 import { PaymentForm } from './PaymentForm';
+import { PAYMENT_TYPE_OPTIONS } from '../lib/recordOptions';
 
 interface PaymentRequestModalProps {
   onClose: () => void;
@@ -288,9 +289,9 @@ export function PaymentRequestModal({ onClose }: PaymentRequestModalProps) {
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="rent">Rent</option>
-                <option value="mortgage">Mortgage</option>
-                <option value="maintenance">Maintenance</option>
+                {PAYMENT_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
               </select>
             </div>
 
