@@ -1,5 +1,6 @@
 import Stripe from 'npm:stripe@14.21.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { applySubscriptionEvent } from '../_shared/applySubscriptionEvent.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -91,104 +92,16 @@ Deno.serve(async (req: Request) => {
         break;
       }
 
+      case 'checkout.session.completed':
       case 'customer.subscription.created':
-      case 'customer.subscription.updated': {
-        const subscription = event.data.object as Stripe.Subscription;
-        const customerId = typeof subscription.customer === 'string'
-          ? subscription.customer
-          : subscription.customer.id;
-
-        const customer = await stripe.customers.retrieve(customerId);
-
-        if (customer.deleted || !('email' in customer) || !customer.email) {
-          console.error('Customer not found or no email');
-          break;
-        }
-
-        const { data: users, error: userError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('email', customer.email)
-          .limit(1);
-
-        if (userError || !users || users.length === 0) {
-          console.error('User not found for email:', customer.email);
-          break;
-        }
-
-        const { error } = await supabase
-          .from('user_subscriptions')
-          .upsert({
-            user_id: users[0].id,
-            subscription_type: 'premium',
-            stripe_subscription_id: subscription.id,
-            status: subscription.status,
-            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-          });
-
-        if (error) {
-          console.error('Error updating subscription:', error);
-        }
+      case 'customer.subscription.updated':
+      case 'customer.subscription.deleted':
+      case 'customer.subscription.paused':
+      case 'customer.subscription.resumed':
+      case 'invoice.paid':
+      case 'invoice.payment_failed':
+        await applySubscriptionEvent(supabase, stripe, event);
         break;
-      }
-
-      case 'customer.subscription.deleted': {
-        const subscription = event.data.object as Stripe.Subscription;
-        const customerId = typeof subscription.customer === 'string'
-          ? subscription.customer
-          : subscription.customer.id;
-
-        const customer = await stripe.customers.retrieve(customerId);
-
-        if (customer.deleted || !('email' in customer) || !customer.email) {
-          console.error('Customer not found or no email');
-          break;
-        }
-
-        const { data: users, error: userError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('email', customer.email)
-          .limit(1);
-
-        if (userError || !users || users.length === 0) {
-          console.error('User not found for email:', customer.email);
-          break;
-        }
-
-        const { error } = await supabase
-          .from('user_subscriptions')
-          .update({
-            subscription_type: 'free',
-            status: 'canceled',
-            stripe_subscription_id: null,
-          })
-          .eq('user_id', users[0].id);
-
-        if (error) {
-          console.error('Error canceling subscription:', error);
-        }
-        break;
-      }
-
-      case 'invoice.payment_failed': {
-        const invoice = event.data.object as Stripe.Invoice;
-        const subscriptionId = invoice.subscription;
-
-        if (subscriptionId) {
-          const subId = typeof subscriptionId === 'string' ? subscriptionId : subscriptionId.id;
-          const { error } = await supabase
-            .from('user_subscriptions')
-            .update({ status: 'past_due' })
-            .eq('stripe_subscription_id', subId);
-
-          if (error) {
-            console.error('Error updating subscription status:', error);
-          }
-        }
-        break;
-      }
 
       default:
         console.log(`Unhandled event type ${event.type}`);
