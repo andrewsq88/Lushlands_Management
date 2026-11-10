@@ -16,7 +16,14 @@ export function setHandleWrite(next: typeof handleWrite) {
   handleWrite = next;
 }
 
+let mockUser: { id: string } | null = null;
+
+export function setMockUser(user: { id: string } | null) {
+  mockUser = user;
+}
+
 export function resetSupabaseMock() {
+  mockUser = null;
   handleWrite = () => ({
     data: null,
     error: { message: 'unhandled write' },
@@ -70,7 +77,7 @@ export const supabase = {
     return Promise.resolve('ok');
   },
   auth: {
-    getUser: async () => ({ data: { user: null }, error: null }),
+    getUser: async () => ({ data: { user: mockUser }, error: null }),
     getSession: async () => ({ data: { session: null }, error: null }),
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
   },

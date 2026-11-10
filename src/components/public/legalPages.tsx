@@ -3,11 +3,11 @@ import { FAQ_ITEMS } from '../../seo/faq';
 
 const textLink = 'text-blue-600 hover:text-blue-700';
 
-function Policy({ title, children }: { title: string; children: ReactNode }) {
+function Policy({ title, updated = '4 November 2026', children }: { title: string; updated?: string; children: ReactNode }) {
   return (
     <article className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
       <h1 className="text-3xl font-bold text-gray-900 font-playfair">{title}</h1>
-      <p className="mt-3 text-sm text-gray-500">Last updated 4 November 2026</p>
+      <p className="mt-3 text-sm text-gray-500">Last updated {updated}</p>
       <div className="mt-6 space-y-6 text-gray-600">{children}</div>
     </article>
   );
@@ -24,7 +24,7 @@ function Section({ heading, children }: { heading: string; children: ReactNode }
 
 export function TermsPage() {
   return (
-    <Policy title="Terms and Conditions">
+    <Policy title="Terms and Conditions" updated="10 November 2026">
       <Section heading="Agreement">
         <p>
           These terms cover your use of LushLands Management at lushlandsmanagement.com.
@@ -65,8 +65,8 @@ export function TermsPage() {
       </Section>
       <Section heading="Plans and payment">
         <p>
-          The core records are available on a free plan. Premium is 15 US dollars a month, billed
-          by Stripe, and removes the free-plan monthly caps on audio and video. You can cancel
+          The core records are available on a free plan, which includes up to 5 properties. Premium is 15 US dollars a month, billed
+          by Stripe. It has no property limit and removes the free-plan monthly caps on audio and video. You can cancel
           Premium from the subscription screen. Taxes, if any, depend on your situation and on
           Stripe. Card payments are processed by Stripe. LushLands does not hold your bank account.
         </p>
@@ -252,7 +252,7 @@ export function DisclaimerPage() {
 
 export function FaqPage() {
   return (
-    <Policy title="Frequently asked questions">
+    <Policy title="Frequently asked questions" updated="10 November 2026">
       <p>
         These answers are about LushLands Management for landlords and property managers anywhere.
         They are not legal, tax, or financial advice. Read the{' '}

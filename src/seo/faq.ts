@@ -28,7 +28,7 @@ export const FAQ_ITEMS: readonly FaqItem[] = [
   {
     question: 'What do the free plan and Premium include?',
     answer:
-      'You can create an account and use the property, tenant, maintenance, and payment records on the free plan. Free accounts can generate up to 5 audio clips and 1 AI video message each month. Premium costs 15 US dollars ($15) per month and removes those monthly audio and video caps. You can cancel Premium at any time. Any tax on the charge depends on you and on Stripe, not on a tax rule built into this product.',
+      'You can create an account and use tenant, maintenance, and payment records on the free plan. Free accounts can add up to 5 properties, and can generate up to 5 audio clips and 1 AI video message each month. Premium costs 15 US dollars ($15) per month, has no property limit, and removes those monthly audio and video caps. You can cancel Premium at any time. Any tax on the charge depends on you and on Stripe, not on a tax rule built into this product.',
   },
   {
     question: 'How does property-description audio work?',

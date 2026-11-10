@@ -5,6 +5,7 @@ import { Dashboard } from './Dashboard';
 import { Maintenance } from './Maintenance';
 import { Payments } from './Payments';
 import { Properties } from './Properties';
+import { PropertyForm } from './PropertyForm';
 import { Tenants } from './Tenants';
 import { ToastViewport } from './ToastViewport';
 import {
@@ -15,7 +16,8 @@ import {
   tenantsCollection,
 } from '../lib/collections';
 import type { MaintenanceRequest, Payment, Property, Tenant } from '../lib/collections';
-import { resetSupabaseMock, setHandleWrite } from '../test/supabaseMock';
+import { resetSupabaseMock, setHandleWrite, setMockUser } from '../test/supabaseMock';
+import { useProperties } from '../hooks/useProperties';
 
 vi.mock('../lib/supabase', async () => {
   const mock = await import('../test/supabaseMock');
@@ -105,6 +107,11 @@ function echoWrites() {
   });
 }
 
+function PropertyCount() {
+  const { properties } = useProperties();
+  return <p data-testid="property-count">{properties.length}</p>;
+}
+
 function countButton(label: string) {
   const button = screen.getAllByRole('button').find((candidate) => {
     const text = (candidate.textContent ?? '').replace(/\s+/g, ' ').trim();
@@ -142,6 +149,7 @@ describe('live dropdowns', () => {
     );
 
     const selects = () => screen.getAllByLabelText('Status for 1 Main St') as HTMLSelectElement[];
+    await screen.findAllByLabelText('Status for 1 Main St');
     expect(selects()).toHaveLength(2);
     expect(within(selects()[0]).getAllByRole('option').map((option) => option.textContent)).toEqual([
       'Vacant',
@@ -222,7 +230,7 @@ describe('live dropdowns', () => {
   it('keeps the property form status select controlled, including switching back', async () => {
     const user = userEvent.setup();
     render(<Properties />);
-    await user.click(screen.getByRole('button', { name: 'Add Property' }));
+    await user.click(await screen.findByRole('button', { name: 'Add Property' }));
     const status = screen.getByLabelText('Status *');
     expect(within(status).getAllByRole('option').map((option) => option.textContent)).toEqual([
       'Vacant',
@@ -235,6 +243,43 @@ describe('live dropdowns', () => {
     expect(status).toHaveValue('occupied');
     await user.selectOptions(status, 'vacant');
     expect(status).toHaveValue('vacant');
+  });
+
+  it('rolls back a rejected insert and shows the free-plan limit notice', async () => {
+    setMockUser({ id: 'user-1' });
+    let finish: (value: { data: unknown; error: unknown }) => void = () => undefined;
+    setHandleWrite(() => new Promise((resolve) => {
+      finish = resolve;
+    }));
+    const user = userEvent.setup();
+    render(
+      <>
+        <ToastViewport />
+        <PropertyCount />
+        <PropertyForm onClose={() => undefined} />
+      </>,
+    );
+
+    expect(screen.getByTestId('property-count')).toHaveTextContent('1');
+    await user.type(screen.getByLabelText('Address *'), '9 Limit Lane');
+    const submit = user.click(screen.getByRole('button', { name: 'Add Property' }));
+    await waitFor(() => expect(screen.getByTestId('property-count')).toHaveTextContent('2'));
+    expect(screen.queryByRole('heading', { name: 'Free plan property limit' })).not.toBeInTheDocument();
+
+    finish({
+      data: null,
+      error: {
+        message: 'Free accounts can have up to 5 properties. Upgrade to Lushlands Premium to add more.',
+        hint: 'FREE_PROPERTY_LIMIT',
+      },
+    });
+
+    await submit;
+    await waitFor(() => expect(screen.getByTestId('property-count')).toHaveTextContent('1'));
+    expect(screen.getByRole('heading', { name: 'Free plan property limit' })).toBeInTheDocument();
+    expect(screen.getByText(/Free accounts can have up to 5 properties/)).toBeInTheDocument();
+    expect(screen.queryByText(/Couldn't add the property/)).not.toBeInTheDocument();
+    expect(screen.queryByText('9 Limit Lane')).not.toBeInTheDocument();
   });
 
   it('updates maintenance priority, status, counts, filters, and the open list together', async () => {
@@ -341,6 +386,7 @@ describe('live dropdowns', () => {
     );
 
     expect(screen.getByLabelText('Property status Vacant')).toBeInTheDocument();
+    await screen.findByLabelText('Status for 1 Main St');
     await user.selectOptions(screen.getByLabelText('Status for 1 Main St'), 'occupied');
     await waitFor(() => expect(screen.getByLabelText('Property status Occupied')).toBeInTheDocument());
     await user.selectOptions(screen.getByLabelText('Status for 1 Main St'), 'maintenance');

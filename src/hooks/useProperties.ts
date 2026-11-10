@@ -1,8 +1,11 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { propertiesCollection } from '../lib/collections';
+import type { Property } from '../lib/collections';
 import { createLoader } from '../lib/liveCollection';
 import { commitOptimistic } from '../lib/optimisticUpdate';
+import { isFreePropertyLimitError } from '../lib/propertyLimit';
 import { retainRealtime } from '../lib/realtime';
+import { errorText, pushErrorToast } from '../lib/toast';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/supabase';
 
@@ -46,9 +49,43 @@ export function useProperties() {
   }, []);
 
   const addProperty = async (property: Omit<PropertyInsert, 'user_id'>) => {
+    const optimisticId = `pending-${globalThis.crypto?.randomUUID?.() ?? Date.now()}`;
+    let started = false;
+    const rollback = () => {
+      if (propertiesCollection.getById(optimisticId)) propertiesCollection.remove(optimisticId);
+    };
+    const reportFailure = (error: unknown) => {
+      console.error('Error adding property:', error);
+      // The form shows PropertyLimitNotice for this error. A generic toast would cover it.
+      if (!isFreePropertyLimitError(error)) {
+        pushErrorToast(errorText(error, "Couldn't add the property. It was removed."));
+      }
+      return { data: null, error };
+    };
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
+
+      const now = new Date().toISOString();
+      const optimistic: Property = {
+        id: optimisticId,
+        address: property.address,
+        type: property.type,
+        status: property.status ?? 'vacant',
+        rent_amount: property.rent_amount ?? null,
+        bedrooms: property.bedrooms ?? null,
+        bathrooms: property.bathrooms ?? null,
+        square_feet: property.square_feet ?? null,
+        description: property.description ?? null,
+        user_id: user.id,
+        created_at: now,
+        updated_at: now,
+      };
+
+      propertiesCollection.beginWrite();
+      started = true;
+      propertiesCollection.upsert(optimistic);
 
       const { data, error } = await supabase
         .from('properties')
@@ -56,12 +93,15 @@ export function useProperties() {
         .select()
         .single();
 
-      if (error) throw error;
+      rollback();
+      if (error || !data) return reportFailure(error ?? new Error('Could not add the property.'));
       propertiesCollection.upsert(data);
       return { data, error: null };
     } catch (error) {
-      console.error('Error adding property:', error);
-      return { data: null, error };
+      rollback();
+      return reportFailure(error);
+    } finally {
+      if (started) propertiesCollection.endWrite();
     }
   };
 

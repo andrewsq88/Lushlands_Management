@@ -40,7 +40,7 @@ function softwareNode(): Record<string, unknown> {
     operatingSystem: 'Web',
     url: `${SITE_ORIGIN}/`,
     description:
-      'Web software for landlords and property managers to record properties, occupants, maintenance, and payments. A free plan is available. Premium is 15 US dollars per month.',
+      'Web software for landlords and property managers to record properties, occupants, maintenance, and payments. Free covers up to 5 properties. Premium is unlimited.',
     isAccessibleForFree: true,
     offers: {
       '@type': 'AggregateOffer',

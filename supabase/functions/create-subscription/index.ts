@@ -1,6 +1,10 @@
 import Stripe from 'npm:stripe@14.21.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
+// Not used by the live Upgrade button. That path redirects to the Stripe
+// Payment Link in src/hooks/useSubscription.ts (createPremiumSubscription).
+// Nothing in the app calls this function.
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -66,16 +70,18 @@ Deno.serve(async (req) => {
       expand: ['latest_invoice.payment_intent'],
     });
 
+    const premium = subscription.status === 'active' || subscription.status === 'trialing';
     const { error: upsertError } = await supabase
       .from('user_subscriptions')
       .upsert({
         user_id: user.id,
-        subscription_type: 'premium',
+        subscription_type: premium ? 'premium' : 'free',
         stripe_subscription_id: subscription.id,
+        stripe_customer_id: customer.id,
         status: subscription.status,
         current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
         current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-      });
+      }, { onConflict: 'user_id' });
 
     if (upsertError) {
       console.error('Error updating subscription in database:', upsertError);
