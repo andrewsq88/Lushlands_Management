@@ -295,7 +295,7 @@ function PublicFooter() {
             The Daily Pulse
           </a>
           <a href={WEEKLY_MEAL_PLAN_HREF} className={otherSiteLink}>
-            Weekly Meal Plan
+            Weekly Meal Planner
           </a>
         </div>
       </nav>
