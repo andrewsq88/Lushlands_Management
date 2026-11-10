@@ -3,6 +3,7 @@ import { Plus, DollarSign, Calendar, User, AlertCircle, CheckCircle, Clock, Exte
 import { usePayments } from '../hooks/usePayments';
 import { PaymentRequestModal } from './PaymentRequestModal';
 import { PaymentListModal } from './PaymentListModal';
+import { PAYMENT_TYPE_OPTIONS } from '../lib/recordOptions';
 
 export function Payments() {
   const { payments, pendingPayments, paidPayments, loading, updatePayment } = usePayments();
@@ -11,9 +12,7 @@ export function Payments() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [successMessage, setSuccessMessage] = useState('');
-  const [showPaymentListModal, setShowPaymentListModal] = useState(false);
-  const [paymentListTitle, setPaymentListTitle] = useState('');
-  const [paymentListData, setPaymentListData] = useState<any[]>([]);
+  const [paymentListKey, setPaymentListKey] = useState<null | 'pending' | 'paid-month' | 'outstanding' | 'collected'>(null);
 
   // Check for payment success/cancel in URL params
   useEffect(() => {
@@ -39,6 +38,11 @@ export function Payments() {
     }
   }, [updatePayment]);
 
+  const isOverdue = (dueDate: string | null, status: string) => {
+    if (!dueDate) return false;
+    return status === 'pending' && new Date(dueDate) < new Date();
+  };
+
   // Filter payments based on search term and status filter
   const filteredPayments = payments.filter(payment => {
     const matchesSearch = payment.tenants?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -53,38 +57,30 @@ export function Payments() {
     return matchesSearch && matchesType && matchesStatus;
   });
 
-  const handleStatsCardClick = (type: string) => {
+  const paidThisMonth = paidPayments.filter((payment) => {
+    const paymentDate = new Date(payment.updated_at);
     const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-    
-    const paidThisMonth = paidPayments.filter(p => {
-      const paymentDate = new Date(p.updated_at);
-      return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
-    });
+    return paymentDate.getMonth() === now.getMonth() && paymentDate.getFullYear() === now.getFullYear();
+  });
 
-    switch (type) {
-      case 'pending':
-        setPaymentListTitle('Pending Payments');
-        setPaymentListData(pendingPayments);
-        setShowPaymentListModal(true);
-        break;
-      case 'paid-month':
-        setPaymentListTitle('Paid Payments This Month');
-        setPaymentListData(paidThisMonth);
-        setShowPaymentListModal(true);
-        break;
-      case 'outstanding':
-        setPaymentListTitle('Outstanding Payments');
-        setPaymentListData(pendingPayments);
-        setShowPaymentListModal(true);
-        break;
-      case 'collected':
-        setPaymentListTitle('Collected Payments This Month');
-        setPaymentListData(paidThisMonth);
-        setShowPaymentListModal(true);
-        break;
-    }
+  const paymentListTitle = paymentListKey === 'pending'
+    ? 'Pending Payments'
+    : paymentListKey === 'paid-month'
+      ? 'Paid Payments This Month'
+      : paymentListKey === 'outstanding'
+        ? 'Outstanding Payments'
+        : paymentListKey === 'collected'
+          ? 'Collected Payments This Month'
+          : '';
+
+  const paymentListData = paymentListKey === 'pending' || paymentListKey === 'outstanding'
+    ? pendingPayments
+    : paymentListKey === 'paid-month' || paymentListKey === 'collected'
+      ? paidThisMonth
+      : [];
+
+  const handleStatsCardClick = (type: 'pending' | 'paid-month' | 'outstanding' | 'collected') => {
+    setPaymentListKey(type);
   };
 
   const getStatusIcon = (status: string) => {
@@ -119,19 +115,8 @@ export function Payments() {
     return new Date(dateString).toLocaleDateString();
   };
 
-  const isOverdue = (dueDate: string | null, status: string) => {
-    if (!dueDate) return false;
-    return status === 'pending' && new Date(dueDate) < new Date();
-  };
-
   const totalOutstanding = pendingPayments.reduce((sum, p) => sum + Number(p.amount), 0);
-  const totalPaidThisMonth = paidPayments
-    .filter(p => {
-      const paymentDate = new Date(p.updated_at);
-      const now = new Date();
-      return paymentDate.getMonth() === now.getMonth() && paymentDate.getFullYear() === now.getFullYear();
-    })
-    .reduce((sum, p) => sum + Number(p.amount), 0);
+  const totalPaidThisMonth = paidThisMonth.reduce((sum, payment) => sum + Number(payment.amount), 0);
 
   if (loading) {
     return (
@@ -185,20 +170,22 @@ export function Payments() {
             <div className="relative">
               <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <select
+                aria-label="Filter payments by type"
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
                 className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
               >
                 <option value="all">All Types</option>
-                <option value="rent">Rent</option>
-                <option value="mortgage">Mortgage</option>
-                <option value="maintenance">Maintenance</option>
+                {PAYMENT_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
               </select>
             </div>
 
             <div className="relative">
               <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <select
+                aria-label="Filter payments by status"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
@@ -240,11 +227,7 @@ export function Payments() {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Paid This Month</p>
-              <p className="text-2xl font-bold text-gray-900">{paidPayments.filter(p => {
-                const paymentDate = new Date(p.updated_at);
-                const now = new Date();
-                return paymentDate.getMonth() === now.getMonth() && paymentDate.getFullYear() === now.getFullYear();
-              }).length}</p>
+              <p className="text-2xl font-bold text-gray-900">{paidThisMonth.length}</p>
             </div>
           </div>
         </button>
@@ -438,11 +421,11 @@ export function Payments() {
       )}
 
       {/* Payment List Modal */}
-      {showPaymentListModal && (
+      {paymentListKey && (
         <PaymentListModal
           title={paymentListTitle}
           payments={paymentListData}
-          onClose={() => setShowPaymentListModal(false)}
+          onClose={() => setPaymentListKey(null)}
         />
       )}
     </div>

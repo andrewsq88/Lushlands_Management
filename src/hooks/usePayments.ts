@@ -1,71 +1,72 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
+import { paymentsCollection } from '../lib/collections';
+import type { Payment } from '../lib/collections';
+import { createLoader } from '../lib/liveCollection';
+import { commitOptimistic } from '../lib/optimisticUpdate';
+import { retainRealtime } from '../lib/realtime';
 import { supabase } from '../lib/supabase';
-import { Database } from '../lib/supabase';
+import type { Database } from '../lib/supabase';
 
-type Payment = Database['public']['Tables']['payments']['Row'];
 type PaymentInsert = Database['public']['Tables']['payments']['Insert'];
 type PaymentUpdate = Database['public']['Tables']['payments']['Update'];
 
+const paymentSelect = `
+  *,
+  tenants (
+    name,
+    email,
+    properties (
+      address
+    )
+  )
+`;
+
+const loadPayments = createLoader(
+  paymentsCollection,
+  async () => {
+    const { data, error } = await supabase
+      .from('payments')
+      .select(paymentSelect)
+      .order('due_date', { ascending: true });
+    return { data: data as Payment[] | null, error };
+  },
+  'Error fetching payments:',
+);
+
+paymentsCollection.setDirtyFlush(() => {
+  void loadPayments(true);
+});
+
+function onPaymentsChange() {
+  if (paymentsCollection.hasInflightWrites()) {
+    paymentsCollection.markDirty();
+    return;
+  }
+  void loadPayments(true);
+}
+
 export function usePayments() {
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { items: payments, loading } = useSyncExternalStore(
+    paymentsCollection.subscribe,
+    paymentsCollection.getSnapshot,
+    paymentsCollection.getSnapshot,
+  );
 
-  const fetchPayments = async () => {
-    try {
-      console.log('Fetching payments...');
-      const { data, error } = await supabase
-        .from('payments')
-        .select(`
-          *,
-          tenants (
-            name,
-            email,
-            properties (
-              address
-            )
-          )
-        `)
-        .order('due_date', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching payments:', error);
-        throw error;
-      }
-      
-      console.log('Payments fetched successfully:', data?.length || 0, 'records');
-      setPayments(data || []);
-    } catch (error) {
-      console.error('Error in fetchPayments:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    void loadPayments();
+    return retainRealtime('payments', onPaymentsChange);
+  }, []);
 
   const addPayment = async (payment: Omit<PaymentInsert, 'id'>) => {
     try {
-      console.log('Adding payment:', payment);
       const { data, error } = await supabase
         .from('payments')
         .insert([payment])
-        .select(`
-          *,
-          tenants (
-            name,
-            email,
-            properties (
-              address
-            )
-          )
-        `)
+        .select(paymentSelect)
         .single();
 
-      if (error) {
-        console.error('Error adding payment:', error);
-        throw error;
-      }
-      
-      console.log('Payment added successfully:', data);
-      setPayments(prev => [data, ...prev]);
+      if (error) throw error;
+      paymentsCollection.upsert(data as Payment);
       return { data, error: null };
     } catch (error) {
       console.error('Error in addPayment:', error);
@@ -73,54 +74,34 @@ export function usePayments() {
     }
   };
 
-  const updatePayment = async (id: string, updates: PaymentUpdate) => {
-    try {
-      console.log('Updating payment:', id, updates);
-      const { data, error } = await supabase
-        .from('payments')
-        .update(updates)
-        .eq('id', id)
-        .select(`
-          *,
-          tenants (
-            name,
-            email,
-            properties (
-              address
-            )
-          )
-        `)
-        .single();
-
-      if (error) {
-        console.error('Error updating payment:', error);
-        throw error;
-      }
-      
-      console.log('Payment updated successfully:', data);
-      setPayments(prev => prev.map(p => p.id === id ? data : p));
-      return { data, error: null };
-    } catch (error) {
-      console.error('Error in updatePayment:', error);
-      return { data: null, error };
-    }
+  const updatePayment = (id: string, updates: PaymentUpdate) => {
+    return commitOptimistic(
+      paymentsCollection,
+      id,
+      updates,
+      async () => {
+        const { data, error } = await supabase
+          .from('payments')
+          .update(updates)
+          .eq('id', id)
+          .select(paymentSelect)
+          .single();
+        if (error || !data) return { data: null, error: error ?? new Error('Payment update failed') };
+        return { data: data as Payment, error: null };
+      },
+      "Couldn't update the payment. The previous value was restored.",
+    );
   };
 
   const deletePayment = async (id: string) => {
     try {
-      console.log('Deleting payment:', id);
       const { error } = await supabase
         .from('payments')
         .delete()
         .eq('id', id);
 
-      if (error) {
-        console.error('Error deleting payment:', error);
-        throw error;
-      }
-      
-      console.log('Payment deleted successfully');
-      setPayments(prev => prev.filter(p => p.id !== id));
+      if (error) throw error;
+      paymentsCollection.remove(id);
       return { error: null };
     } catch (error) {
       console.error('Error in deletePayment:', error);
@@ -136,8 +117,7 @@ export function usePayments() {
   }) => {
     try {
       console.log('Creating payment request:', paymentData);
-      
-      // First create the payment record
+
       const { data: payment, error: paymentError } = await addPayment(paymentData);
       if (paymentError) {
         console.error('Error creating payment record:', paymentError);
@@ -157,7 +137,7 @@ export function usePayments() {
           amount: paymentData.amount * 100, // Convert to cents
           currency: 'usd',
           product_name: `${paymentData.type.charAt(0).toUpperCase() + paymentData.type.slice(1)} Payment`,
-          payment_id: payment.data?.id,
+          payment_id: payment?.id,
           success_url: `${window.location.origin}/payments?success=true`,
           cancel_url: `${window.location.origin}/payments?canceled=true`,
         }),
@@ -180,12 +160,8 @@ export function usePayments() {
     }
   };
 
-  useEffect(() => {
-    fetchPayments();
-  }, []);
-
-  const pendingPayments = payments.filter(p => p.status === 'pending');
-  const paidPayments = payments.filter(p => p.status === 'paid');
+  const pendingPayments = payments.filter((payment) => payment.status === 'pending');
+  const paidPayments = payments.filter((payment) => payment.status === 'paid');
 
   return {
     payments,
@@ -196,6 +172,6 @@ export function usePayments() {
     updatePayment,
     deletePayment,
     createPaymentRequest,
-    refetch: fetchPayments,
+    refetch: () => loadPayments(true),
   };
 }

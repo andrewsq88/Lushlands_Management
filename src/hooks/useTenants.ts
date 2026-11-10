@@ -1,37 +1,58 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
+import { tenantsCollection } from '../lib/collections';
+import type { Tenant } from '../lib/collections';
+import { createLoader } from '../lib/liveCollection';
+import { commitOptimistic } from '../lib/optimisticUpdate';
+import { retainRealtime } from '../lib/realtime';
 import { supabase } from '../lib/supabase';
-import { Database } from '../lib/supabase';
+import type { Database } from '../lib/supabase';
 
-type Tenant = Database['public']['Tables']['tenants']['Row'];
 type TenantInsert = Database['public']['Tables']['tenants']['Insert'];
 type TenantUpdate = Database['public']['Tables']['tenants']['Update'];
-type ScreeningResult = Database['public']['Tables']['screening_results']['Row'];
+
+const tenantSelect = `
+  *,
+  properties (
+    address,
+    type
+  )
+`;
+
+const loadTenants = createLoader(
+  tenantsCollection,
+  async () => {
+    const { data, error } = await supabase
+      .from('tenants')
+      .select(tenantSelect)
+      .order('created_at', { ascending: false });
+    return { data: data as Tenant[] | null, error };
+  },
+  'Error fetching tenants:',
+);
+
+tenantsCollection.setDirtyFlush(() => {
+  void loadTenants(true);
+});
+
+function onTenantsChange() {
+  if (tenantsCollection.hasInflightWrites()) {
+    tenantsCollection.markDirty();
+    return;
+  }
+  void loadTenants(true);
+}
 
 export function useTenants() {
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { items: tenants, loading } = useSyncExternalStore(
+    tenantsCollection.subscribe,
+    tenantsCollection.getSnapshot,
+    tenantsCollection.getSnapshot,
+  );
 
-  const fetchTenants = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('tenants')
-        .select(`
-          *,
-          properties (
-            address,
-            type
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setTenants(data || []);
-    } catch (error) {
-      console.error('Error fetching tenants:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    void loadTenants();
+    return retainRealtime('tenants', onTenantsChange);
+  }, []);
 
   const addTenant = async (tenant: Omit<TenantInsert, 'user_id'>) => {
     try {
@@ -41,17 +62,11 @@ export function useTenants() {
       const { data, error } = await supabase
         .from('tenants')
         .insert([{ ...tenant, user_id: user.id }])
-        .select(`
-          *,
-          properties (
-            address,
-            type
-          )
-        `)
+        .select(tenantSelect)
         .single();
 
       if (error) throw error;
-      setTenants(prev => [data, ...prev]);
+      tenantsCollection.upsert(data as Tenant);
       return { data, error: null };
     } catch (error) {
       console.error('Error adding tenant:', error);
@@ -59,28 +74,23 @@ export function useTenants() {
     }
   };
 
-  const updateTenant = async (id: string, updates: TenantUpdate) => {
-    try {
-      const { data, error } = await supabase
-        .from('tenants')
-        .update(updates)
-        .eq('id', id)
-        .select(`
-          *,
-          properties (
-            address,
-            type
-          )
-        `)
-        .single();
-
-      if (error) throw error;
-      setTenants(prev => prev.map(t => t.id === id ? data : t));
-      return { data, error: null };
-    } catch (error) {
-      console.error('Error updating tenant:', error);
-      return { data: null, error };
-    }
+  const updateTenant = (id: string, updates: TenantUpdate) => {
+    return commitOptimistic(
+      tenantsCollection,
+      id,
+      updates,
+      async () => {
+        const { data, error } = await supabase
+          .from('tenants')
+          .update(updates)
+          .eq('id', id)
+          .select(tenantSelect)
+          .single();
+        if (error || !data) return { data: null, error: error ?? new Error('Tenant update failed') };
+        return { data: data as Tenant, error: null };
+      },
+      "Couldn't update the tenant. The previous value was restored.",
+    );
   };
 
   const deleteTenant = async (id: string) => {
@@ -91,7 +101,7 @@ export function useTenants() {
         .eq('id', id);
 
       if (error) throw error;
-      setTenants(prev => prev.filter(t => t.id !== id));
+      tenantsCollection.remove(id);
       return { error: null };
     } catch (error) {
       console.error('Error deleting tenant:', error);
@@ -119,7 +129,7 @@ export function useTenants() {
             income: tenant.income || 0,
             lease_start: tenant.lease_start || '',
             lease_end: tenant.lease_end || '',
-          }
+          },
         }),
       });
 
@@ -129,7 +139,6 @@ export function useTenants() {
 
       const aiResult = await response.json();
 
-      // Save screening result to database
       const { data, error } = await supabase
         .from('screening_results')
         .insert([{
@@ -146,9 +155,9 @@ export function useTenants() {
       return {
         data: {
           ...aiResult,
-          id: data.id
+          id: data.id,
         },
-        error: null
+        error: null,
       };
     } catch (error) {
       console.error('Error screening tenant:', error);
@@ -173,10 +182,6 @@ export function useTenants() {
     }
   };
 
-  useEffect(() => {
-    fetchTenants();
-  }, []);
-
   return {
     tenants,
     loading,
@@ -185,6 +190,6 @@ export function useTenants() {
     deleteTenant,
     screenTenantAI,
     getScreeningResults,
-    refetch: fetchTenants,
+    refetch: () => loadTenants(true),
   };
 }

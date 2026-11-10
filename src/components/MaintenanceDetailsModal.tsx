@@ -1,5 +1,7 @@
 import React from 'react';
 import { X, MapPin, User, Calendar, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
+import { useMaintenanceRequests } from '../hooks/useMaintenanceRequests';
+import { maintenancePriorityClass, maintenanceStatusClass } from '../lib/recordOptions';
 
 interface MaintenanceDetailsModalProps {
   maintenanceRequest: any;
@@ -7,6 +9,9 @@ interface MaintenanceDetailsModalProps {
 }
 
 export function MaintenanceDetailsModal({ maintenanceRequest, onClose }: MaintenanceDetailsModalProps) {
+  const { maintenanceRequests } = useMaintenanceRequests();
+  const liveRequest = maintenanceRequests.find((request) => request.id === maintenanceRequest.id) ?? maintenanceRequest;
+
   const getPriorityIcon = (priority: string) => {
     switch (priority) {
       case 'High':
@@ -18,24 +23,6 @@ export function MaintenanceDetailsModal({ maintenanceRequest, onClose }: Mainten
       default:
         return <Clock className="h-4 w-4 text-gray-500" />;
     }
-  };
-
-  const getPriorityBadge = (priority: string) => {
-    const styles = {
-      High: 'bg-red-100 text-red-800 border-red-200',
-      Medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      Low: 'bg-green-100 text-green-800 border-green-200',
-    };
-    return styles[priority as keyof typeof styles] || 'bg-gray-100 text-gray-800 border-gray-200';
-  };
-
-  const getStatusBadge = (status: string) => {
-    const styles = {
-      Open: 'bg-blue-100 text-blue-800 border-blue-200',
-      'In Progress': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      Closed: 'bg-green-100 text-green-800 border-green-200',
-    };
-    return styles[status as keyof typeof styles] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
   return (
@@ -56,18 +43,18 @@ export function MaintenanceDetailsModal({ maintenanceRequest, onClose }: Mainten
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Request Summary</h2>
-              <p className="text-gray-700 leading-relaxed">{maintenanceRequest.description}</p>
+              <p className="text-gray-700 leading-relaxed">{liveRequest.description}</p>
             </div>
             <div className="ml-4 space-y-2">
               <div className="flex items-center">
-                {getPriorityIcon(maintenanceRequest.priority)}
-                <span className={`ml-2 px-3 py-1 text-sm font-medium rounded-full border ${getPriorityBadge(maintenanceRequest.priority)}`}>
-                  {maintenanceRequest.priority} Priority
+                {getPriorityIcon(liveRequest.priority)}
+                <span className={`ml-2 px-3 py-1 text-sm font-medium rounded-full border ${maintenancePriorityClass(liveRequest.priority)}`}>
+                  {liveRequest.priority} Priority
                 </span>
               </div>
               <div className="flex items-center">
-                <span className={`px-3 py-1 text-sm font-medium rounded-full border ${getStatusBadge(maintenanceRequest.status)}`}>
-                  {maintenanceRequest.status}
+                <span className={`px-3 py-1 text-sm font-medium rounded-full border ${maintenanceStatusClass(liveRequest.status)}`}>
+                  {liveRequest.status}
                 </span>
               </div>
             </div>
@@ -81,18 +68,18 @@ export function MaintenanceDetailsModal({ maintenanceRequest, onClose }: Mainten
             </h4>
             <div className="space-y-1">
               <p className="text-blue-900 font-medium">
-                {maintenanceRequest.properties?.address || 'Unknown Property'}
+                {liveRequest.properties?.address || 'Unknown Property'}
               </p>
-              {maintenanceRequest.properties?.type && (
+              {liveRequest.properties?.type && (
                 <p className="text-blue-700 text-sm capitalize">
-                  {maintenanceRequest.properties.type}
+                  {liveRequest.properties.type}
                 </p>
               )}
             </div>
           </div>
 
           {/* Tenant Information */}
-          {maintenanceRequest.tenants && (
+          {liveRequest.tenants && (
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
               <h4 className="text-sm font-medium text-green-800 mb-2 flex items-center">
                 <User className="h-4 w-4 mr-2" />
@@ -100,10 +87,10 @@ export function MaintenanceDetailsModal({ maintenanceRequest, onClose }: Mainten
               </h4>
               <div className="space-y-1">
                 <p className="text-green-900 font-medium">
-                  {maintenanceRequest.tenants.name}
+                  {liveRequest.tenants.name}
                 </p>
                 <p className="text-green-700 text-sm">
-                  {maintenanceRequest.tenants.email}
+                  {liveRequest.tenants.email}
                 </p>
               </div>
             </div>
@@ -118,13 +105,13 @@ export function MaintenanceDetailsModal({ maintenanceRequest, onClose }: Mainten
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-gray-600">Submitted</p>
-                <p className="text-gray-900">{new Date(maintenanceRequest.created_at).toLocaleDateString()}</p>
-                <p className="text-gray-600 text-sm">{new Date(maintenanceRequest.created_at).toLocaleTimeString()}</p>
+                <p className="text-gray-900">{new Date(liveRequest.created_at).toLocaleDateString()}</p>
+                <p className="text-gray-600 text-sm">{new Date(liveRequest.created_at).toLocaleTimeString()}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-600">Last Updated</p>
-                <p className="text-gray-900">{new Date(maintenanceRequest.updated_at).toLocaleDateString()}</p>
-                <p className="text-gray-600 text-sm">{new Date(maintenanceRequest.updated_at).toLocaleTimeString()}</p>
+                <p className="text-gray-900">{new Date(liveRequest.updated_at).toLocaleDateString()}</p>
+                <p className="text-gray-600 text-sm">{new Date(liveRequest.updated_at).toLocaleTimeString()}</p>
               </div>
             </div>
           </div>
@@ -132,7 +119,7 @@ export function MaintenanceDetailsModal({ maintenanceRequest, onClose }: Mainten
           {/* Request ID */}
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
             <h4 className="text-sm font-medium text-gray-800 mb-2">Request ID</h4>
-            <p className="text-gray-600 text-sm font-mono">{maintenanceRequest.id}</p>
+            <p className="text-gray-600 text-sm font-mono">{liveRequest.id}</p>
           </div>
         </div>
 

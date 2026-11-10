@@ -3,14 +3,18 @@ import { Plus, CreditCard as Edit2, Trash2, Search, Filter, AlertTriangle, Clock
 import { useMaintenanceRequests } from '../hooks/useMaintenanceRequests';
 import { MaintenanceForm } from './MaintenanceForm';
 import { MaintenanceRequestsListModal } from './MaintenanceRequestsListModal';
+import { MaintenancePrioritySelect, MaintenanceStatusSelect } from './RecordSelects';
+import {
+  MAINTENANCE_PRIORITY_OPTIONS,
+  MAINTENANCE_STATUS_OPTIONS,
+} from '../lib/recordOptions';
+import type { MaintenanceListFilter } from '../lib/recordOptions';
 
 export function Maintenance() {
   const { maintenanceRequests, highPriorityRequests, openRequests, loading, updateMaintenanceRequest, deleteMaintenanceRequest } = useMaintenanceRequests();
   const [showForm, setShowForm] = useState(false);
   const [editingRequest, setEditingRequest] = useState<any>(null);
-  const [showMaintenanceListModal, setShowMaintenanceListModal] = useState(false);
-  const [maintenanceListTitle, setMaintenanceListTitle] = useState('');
-  const [maintenanceListData, setMaintenanceListData] = useState<any[]>([]);
+  const [maintenanceList, setMaintenanceList] = useState<{ title: string; filter: MaintenanceListFilter } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
@@ -85,19 +89,13 @@ export function Maintenance() {
   const handleStatsCardClick = (type: string) => {
     switch (type) {
       case 'high-priority':
-        setMaintenanceListTitle('High Priority Maintenance Issues');
-        setMaintenanceListData(highPriorityRequests);
-        setShowMaintenanceListModal(true);
+        setMaintenanceList({ title: 'High Priority Maintenance Issues', filter: 'high-priority' });
         break;
       case 'open-requests':
-        setMaintenanceListTitle('Open Maintenance Requests');
-        setMaintenanceListData(openRequests);
-        setShowMaintenanceListModal(true);
+        setMaintenanceList({ title: 'Open Maintenance Requests', filter: 'open' });
         break;
       case 'total-requests':
-        setMaintenanceListTitle('All Maintenance Requests');
-        setMaintenanceListData(maintenanceRequests);
-        setShowMaintenanceListModal(true);
+        setMaintenanceList({ title: 'All Maintenance Requests', filter: 'all' });
         break;
     }
   };
@@ -113,24 +111,6 @@ export function Maintenance() {
       default:
         return <Clock className="h-4 w-4 text-gray-500" />;
     }
-  };
-
-  const getPriorityBadge = (priority: string) => {
-    const styles = {
-      High: 'bg-red-100 text-red-800 border-red-200',
-      Medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      Low: 'bg-green-100 text-green-800 border-green-200',
-    };
-    return styles[priority as keyof typeof styles] || 'bg-gray-100 text-gray-800 border-gray-200';
-  };
-
-  const getStatusBadge = (status: string) => {
-    const styles = {
-      Open: 'bg-blue-100 text-blue-800 border-blue-200',
-      'In Progress': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      Closed: 'bg-green-100 text-green-800 border-green-200',
-    };
-    return styles[status as keyof typeof styles] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
   if (loading) {
@@ -223,26 +203,28 @@ export function Maintenance() {
             <div className="relative">
               <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <select
+                aria-label="Filter maintenance by status"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
               >
                 <option value="all">All Status</option>
-                <option value="Open">Open</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Closed">Closed</option>
+                {MAINTENANCE_STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
               </select>
             </div>
 
             <select
+              aria-label="Filter maintenance by priority"
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
             >
               <option value="all">All Priority</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
+              {MAINTENANCE_PRIORITY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -343,26 +325,18 @@ export function Maintenance() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <select
+                      <MaintenancePrioritySelect
                         value={request.priority}
-                        onChange={(e) => handlePriorityUpdate(request.id, e.target.value)}
-                        className={`text-xs font-medium rounded-full border px-2 py-1 ${getPriorityBadge(request.priority)} focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      >
-                        <option value="High">High</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Low">Low</option>
-                      </select>
+                        ariaLabel={`Priority for ${request.description}`}
+                        onChange={(priority) => { void handlePriorityUpdate(request.id, priority); }}
+                      />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <select
+                      <MaintenanceStatusSelect
                         value={request.status}
-                        onChange={(e) => handleStatusUpdate(request.id, e.target.value)}
-                        className={`text-xs font-medium rounded-full border px-2 py-1 ${getStatusBadge(request.status)} focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      >
-                        <option value="Open">Open</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Closed">Closed</option>
-                      </select>
+                        ariaLabel={`Status for ${request.description}`}
+                        onChange={(status) => { void handleStatusUpdate(request.id, status); }}
+                      />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-600">
@@ -408,11 +382,11 @@ export function Maintenance() {
       )}
 
       {/* Maintenance Requests List Modal */}
-      {showMaintenanceListModal && (
+      {maintenanceList && (
         <MaintenanceRequestsListModal
-          title={maintenanceListTitle}
-          maintenanceRequests={maintenanceListData}
-          onClose={() => setShowMaintenanceListModal(false)}
+          title={maintenanceList.title}
+          filter={maintenanceList.filter}
+          onClose={() => setMaintenanceList(null)}
         />
       )}
     </div>

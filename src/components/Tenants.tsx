@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, Search, User, Mail, Phone, Calendar, MapPin, Brain, DollarSign, CheckCircle, XCircle, Video, Download, AlertCircle } from 'lucide-react';
 import { useTenants } from '../hooks/useTenants';
+import { useProperties } from '../hooks/useProperties';
 import { useSubscription } from '../hooks/useSubscription';
 import { usePremiumFeatures } from '../hooks/usePremiumFeatures';
 import { TenantForm } from './TenantForm';
+import { propertyStatusClass, propertyStatusLabel } from '../lib/recordOptions';
 
 export function Tenants() {
   const { tenants, loading, deleteTenant, screenTenantAI, getScreeningResults } = useTenants();
+  const { properties } = useProperties();
   const { isPremium, getRemainingUsage } = useSubscription();
   const [showForm, setShowForm] = useState(false);
   const [editingTenant, setEditingTenant] = useState(null);
@@ -155,7 +158,10 @@ export function Tenants() {
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
-            {filteredTenants.map((tenant) => (
+            {filteredTenants.map((tenant) => {
+              const liveProperty = properties.find((property) => property.id === tenant.property_id);
+              const propertyAddress = liveProperty?.address || tenant.properties?.address;
+              return (
               <div key={tenant.id} className="bg-gray-50 rounded-lg p-6 hover:bg-gray-100 transition-colors border border-gray-200">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center">
@@ -204,10 +210,18 @@ export function Tenants() {
                     </div>
                   )}
 
-                  {tenant.properties && (
+                  {propertyAddress && (
                     <div className="flex items-center text-sm text-gray-600">
                       <MapPin className="h-4 w-4 mr-2" />
-                      <span className="truncate">{tenant.properties.address}</span>
+                      <span className="truncate">{propertyAddress}</span>
+                      {liveProperty && (
+                        <span
+                          className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${propertyStatusClass(liveProperty.status)}`}
+                          aria-label={`Property status ${propertyStatusLabel(liveProperty.status)}`}
+                        >
+                          {propertyStatusLabel(liveProperty.status)}
+                        </span>
+                      )}
                     </div>
                   )}
 
@@ -272,7 +286,8 @@ export function Tenants() {
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

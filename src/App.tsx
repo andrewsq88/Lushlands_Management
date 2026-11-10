@@ -16,6 +16,7 @@ import { Financing } from './components/Financing';
 import { DownPayment } from './components/DownPayment';
 import { SubscriptionManager } from './components/SubscriptionManager';
 import { PublicLanding } from './components/PublicLanding';
+import { ToastViewport } from './components/ToastViewport';
 import { PUBLIC_PAGES } from './seo/pageMeta';
 
 function DashboardLayout({ children }: { children?: ReactNode }) {
@@ -49,6 +50,7 @@ function App({ assumeSignedIn = false }: { assumeSignedIn?: boolean }) {
   return (
     <Router>
       <Analytics beforeSend={analyticsBeforeSend} />
+      <ToastViewport />
       <Routes>
         {PUBLIC_PAGES.filter((page) => page.path !== '/').map((page) => (
           <Route key={page.path} path={page.path} element={<PublicLanding path={page.path} />} />

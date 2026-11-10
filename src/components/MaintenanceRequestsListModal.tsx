@@ -1,18 +1,25 @@
 import React, { useState } from 'react';
 import { X, AlertTriangle, Clock, CheckCircle, User, MapPin, Calendar } from 'lucide-react';
 import { MaintenanceDetailsModal } from './MaintenanceDetailsModal';
+import { MaintenancePrioritySelect, MaintenanceStatusSelect } from './RecordSelects';
 import { useMaintenanceRequests } from '../hooks/useMaintenanceRequests';
+import type { MaintenanceListFilter } from '../lib/recordOptions';
 
 interface MaintenanceRequestsListModalProps {
   title: string;
-  maintenanceRequests: any[];
+  filter: MaintenanceListFilter;
   onClose: () => void;
 }
 
-export function MaintenanceRequestsListModal({ title, maintenanceRequests, onClose }: MaintenanceRequestsListModalProps) {
-  const { updateMaintenanceRequest } = useMaintenanceRequests();
-  const [selectedRequest, setSelectedRequest] = useState(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
+export function MaintenanceRequestsListModal({ title, filter, onClose }: MaintenanceRequestsListModalProps) {
+  const { maintenanceRequests, updateMaintenanceRequest } = useMaintenanceRequests();
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const visibleRequests = maintenanceRequests.filter((request) => {
+    if (filter === 'all') return true;
+    if (filter === 'open') return request.status === 'Open';
+    return request.priority === 'High' && request.status === 'Open';
+  });
+  const selectedRequest = maintenanceRequests.find((request) => request.id === selectedRequestId) ?? null;
 
   const getPriorityIcon = (priority: string) => {
     switch (priority) {
@@ -27,43 +34,6 @@ export function MaintenanceRequestsListModal({ title, maintenanceRequests, onClo
     }
   };
 
-  const getPriorityBadge = (priority: string) => {
-    const styles = {
-      High: 'bg-red-100 text-red-800 border-red-200',
-      Medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      Low: 'bg-green-100 text-green-800 border-green-200',
-    };
-    return styles[priority as keyof typeof styles] || 'bg-gray-100 text-gray-800 border-gray-200';
-  };
-
-  const getStatusBadge = (status: string) => {
-    const styles = {
-      Open: 'bg-blue-100 text-blue-800 border-blue-200',
-      'In Progress': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      Closed: 'bg-green-100 text-green-800 border-green-200',
-    };
-    return styles[status as keyof typeof styles] || 'bg-gray-100 text-gray-800 border-gray-200';
-  };
-
-  const handleRequestClick = (request: any) => {
-    setSelectedRequest(request);
-    setShowDetailsModal(true);
-  };
-
-  const closeDetailsModal = () => {
-    setShowDetailsModal(false);
-    setSelectedRequest(null);
-  };
-
-  const handlePriorityUpdate = async (requestId: string, newPriority: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    await updateMaintenanceRequest(requestId, { priority: newPriority });
-  };
-
-  const handleStatusUpdate = async (requestId: string, newStatus: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    await updateMaintenanceRequest(requestId, { status: newStatus });
-  };
   return (
     <>
       <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-40">
@@ -82,7 +52,7 @@ export function MaintenanceRequestsListModal({ title, maintenanceRequests, onClo
           </div>
 
           <div className="p-6">
-            {maintenanceRequests.length === 0 ? (
+            {visibleRequests.length === 0 ? (
               <div className="text-center py-12">
                 <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No maintenance requests found</h3>
@@ -90,36 +60,26 @@ export function MaintenanceRequestsListModal({ title, maintenanceRequests, onClo
               </div>
             ) : (
               <div className="space-y-4">
-                {maintenanceRequests.map((request) => (
+                {visibleRequests.map((request) => (
                   <button
                     key={request.id}
-                    onClick={() => handleRequestClick(request)}
+                    onClick={() => setSelectedRequestId(request.id)}
                     className="w-full p-4 bg-gray-50 rounded-lg hover:bg-blue-50 hover:border-blue-200 border border-transparent transition-all duration-200 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
                     <div className="flex flex-col space-y-3">
                       {/* Priority and Status Row */}
                       <div className="flex items-center space-x-2">
                         {getPriorityIcon(request.priority)}
-                        <select
+                        <MaintenancePrioritySelect
                           value={request.priority}
-                          onChange={(e) => handlePriorityUpdate(request.id, e.target.value, e)}
-                          onClick={(e) => e.stopPropagation()}
-                          className={`px-2 py-1 text-xs font-medium rounded-full border ${getPriorityBadge(request.priority)} focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                        >
-                          <option value="High">High</option>
-                          <option value="Medium">Medium</option>
-                          <option value="Low">Low</option>
-                        </select>
-                        <select
+                          ariaLabel={`Priority for ${request.description}`}
+                          onChange={(priority) => { void updateMaintenanceRequest(request.id, { priority }); }}
+                        />
+                        <MaintenanceStatusSelect
                           value={request.status}
-                          onChange={(e) => handleStatusUpdate(request.id, e.target.value, e)}
-                          onClick={(e) => e.stopPropagation()}
-                          className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusBadge(request.status)} focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                        >
-                          <option value="Open">Open</option>
-                          <option value="In Progress">In Progress</option>
-                          <option value="Closed">Closed</option>
-                        </select>
+                          ariaLabel={`Status for ${request.description}`}
+                          onChange={(status) => { void updateMaintenanceRequest(request.id, { status }); }}
+                        />
                       </div>
                       
                       {/* Description */}
@@ -169,10 +129,10 @@ export function MaintenanceRequestsListModal({ title, maintenanceRequests, onClo
       </div>
 
       {/* Maintenance Details Modal */}
-      {showDetailsModal && selectedRequest && (
+      {selectedRequest && (
         <MaintenanceDetailsModal
           maintenanceRequest={selectedRequest}
-          onClose={closeDetailsModal}
+          onClose={() => setSelectedRequestId(null)}
         />
       )}
     </>

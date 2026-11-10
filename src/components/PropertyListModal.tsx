@@ -1,37 +1,23 @@
 import React, { useState } from 'react';
 import { X, MapPin, Building2 } from 'lucide-react';
 import { PropertyDetailsModal } from './PropertyDetailsModal';
+import { PropertyStatusSelect } from './RecordSelects';
 import { useProperties } from '../hooks/useProperties';
+import type { PropertyListStatus } from '../lib/recordOptions';
 
 interface PropertyListModalProps {
   title: string;
-  properties: any[];
+  status: PropertyListStatus;
   onClose: () => void;
 }
 
-export function PropertyListModal({ title, properties, onClose }: PropertyListModalProps) {
-  const { updateProperty } = useProperties();
-  const [selectedProperty, setSelectedProperty] = useState(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-
-  const getStatusBadge = (status: string) => {
-    const styles = {
-      occupied: 'bg-green-100 text-green-800',
-      vacant: 'bg-yellow-100 text-yellow-800',
-      maintenance: 'bg-red-100 text-red-800',
-    };
-    return styles[status as keyof typeof styles] || 'bg-gray-100 text-gray-800';
-  };
-
-  const handlePropertyClick = (property: any) => {
-    setSelectedProperty(property);
-    setShowDetailsModal(true);
-  };
-
-  const closeDetailsModal = () => {
-    setShowDetailsModal(false);
-    setSelectedProperty(null);
-  };
+export function PropertyListModal({ title, status, onClose }: PropertyListModalProps) {
+  const { properties, updateProperty } = useProperties();
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const visibleProperties = status === 'all'
+    ? properties
+    : properties.filter((property) => property.status === status);
+  const selectedProperty = properties.find((property) => property.id === selectedPropertyId) ?? null;
 
   return (
     <>
@@ -51,7 +37,7 @@ export function PropertyListModal({ title, properties, onClose }: PropertyListMo
           </div>
 
           <div className="p-6">
-            {properties.length === 0 ? (
+            {visibleProperties.length === 0 ? (
               <div className="text-center py-12">
                 <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No properties found</h3>
@@ -59,10 +45,10 @@ export function PropertyListModal({ title, properties, onClose }: PropertyListMo
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {properties.map((property) => (
+                {visibleProperties.map((property) => (
                   <button
                     key={property.id}
-                    onClick={() => handlePropertyClick(property)}
+                    onClick={() => setSelectedPropertyId(property.id)}
                     className="w-full p-4 bg-gray-50 rounded-lg hover:bg-blue-50 hover:border-blue-200 border border-transparent transition-all duration-200 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
                     <div className="flex items-start justify-between mb-3">
@@ -73,16 +59,11 @@ export function PropertyListModal({ title, properties, onClose }: PropertyListMo
                         </div>
                         <p className="text-sm text-gray-600 capitalize">{property.type}</p>
                       </div>
-                      <select
+                      <PropertyStatusSelect
                         value={property.status}
-                        onChange={(e) => updateProperty(property.id, { status: e.target.value })}
-                        className={`text-xs font-medium rounded-full border px-2 py-1 capitalize ${getStatusBadge(property.status)} focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <option value="vacant">Vacant</option>
-                        <option value="occupied">Occupied</option>
-                        <option value="maintenance">Maintenance</option>
-                      </select>
+                        ariaLabel={`Status for ${property.address}`}
+                        onChange={(nextStatus) => { void updateProperty(property.id, { status: nextStatus }); }}
+                      />
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
@@ -123,10 +104,10 @@ export function PropertyListModal({ title, properties, onClose }: PropertyListMo
       </div>
 
       {/* Property Details Modal */}
-      {showDetailsModal && selectedProperty && (
+      {selectedProperty && (
         <PropertyDetailsModal
           property={selectedProperty}
-          onClose={closeDetailsModal}
+          onClose={() => setSelectedPropertyId(null)}
         />
       )}
     </>
