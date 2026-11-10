@@ -1,6 +1,7 @@
 import Stripe from 'npm:stripe@14.21.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { applySubscriptionEvent } from '../_shared/applySubscriptionEvent.ts';
+import { subscriptionSyncHttpResponse } from '../_shared/subscriptionSync.mjs';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -77,12 +78,12 @@ Deno.serve(async (req: Request) => {
       },
     );
   } catch (error) {
-    console.error('Webhook error:', error);
+    const failure = subscriptionSyncHttpResponse(error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Webhook processing failed' }),
+      JSON.stringify(failure.body),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: failure.status,
       },
     );
   }

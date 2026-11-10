@@ -21,8 +21,8 @@ export async function applySubscriptionEvent(supabase: SupabaseLike, stripe: Str
     getSubscription: async (id: string) => {
       try {
         return await stripe.subscriptions.retrieve(id);
-      } catch (error) {
-        console.error('Could not load Stripe subscription', id, error);
+      } catch {
+        console.error('Could not load Stripe subscription', id);
         return null;
       }
     },
@@ -42,6 +42,14 @@ export async function applySubscriptionEvent(supabase: SupabaseLike, stripe: Str
       supabase.from('user_subscriptions').select('user_id').eq('stripe_subscription_id', subscriptionId).maybeSingle(),
       'user_id',
     ),
+    getStoredSubscription: async (userId: string) => {
+      const { data } = await supabase
+        .from('user_subscriptions')
+        .select('stripe_subscription_id, status, last_stripe_event_created')
+        .eq('user_id', userId)
+        .maybeSingle();
+      return data ?? null;
+    },
     findUserByEmail: async (email: string) => firstId(
       supabase.from('users').select('id').eq('email', email).limit(1),
       'id',
@@ -51,8 +59,8 @@ export async function applySubscriptionEvent(supabase: SupabaseLike, stripe: Str
         const customer = await stripe.customers.retrieve(customerId);
         if (!customer || customer.deleted || !customer.email) return null;
         return customer.email;
-      } catch (error) {
-        console.error('Could not load Stripe customer', customerId, error);
+      } catch {
+        console.error('Could not load Stripe customer', customerId);
         return null;
       }
     },

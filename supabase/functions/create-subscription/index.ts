@@ -1,6 +1,10 @@
 import Stripe from 'npm:stripe@14.21.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
+// Not used by the live Upgrade button. That path redirects to the Stripe
+// Payment Link in src/hooks/useSubscription.ts (createPremiumSubscription).
+// Nothing in the app calls this function.
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',

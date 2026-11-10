@@ -8,6 +8,8 @@
  * 2. stripe_customer_id already stored for that customer
  * 3. stripe_subscription_id already stored
  * 4. email on public.users, only when the stronger ids are missing
+ *
+ * Logs name the Supabase user id only. They never include an email address.
  */
 
 export const STRIPE_SUBSCRIPTION_STATUSES = [
@@ -21,8 +23,17 @@ export const STRIPE_SUBSCRIPTION_STATUSES = [
   'paused',
 ];
 
+/** Non-2xx so Stripe retries when the sync throws. Ignored events stay 200. */
+export const SYNC_FAILURE_STATUS = 500;
+
 const PREMIUM_STATUSES = new Set(['active', 'trialing']);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function subscriptionSyncHttpResponse(error) {
+  if (!error) return { status: 200, body: { received: true } };
+  console.error('Webhook processing failed');
+  return { status: SYNC_FAILURE_STATUS, body: { error: 'Webhook processing failed' } };
+}
 
 export function customerIdOf(customer) {
   if (!customer) return null;
@@ -47,6 +58,15 @@ function periodIso(unixSeconds) {
   return new Date(unixSeconds * 1000).toISOString();
 }
 
+function storedEventSeconds(value) {
+  if (value == null || value === '') return null;
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value > 1e12 ? value / 1000 : value;
+  }
+  const parsed = Date.parse(String(value));
+  return Number.isFinite(parsed) ? parsed / 1000 : null;
+}
+
 function rowFromSubscription(subscription, userId) {
   const entitlement = entitlementForStatus(subscription?.status);
   if (!entitlement || !userId) return null;
@@ -64,21 +84,34 @@ function rowFromSubscription(subscription, userId) {
   return row;
 }
 
+function logMatch(userId, how) {
+  console.log('Matched Stripe subscription event to user', userId, 'via', how);
+}
+
 async function resolveCheckoutUser(session, deps) {
   const refId = session.client_reference_id;
   if (typeof refId === 'string' && UUID_RE.test(refId)) {
     const byId = await deps.findUserById(refId);
-    if (byId) return byId;
+    if (byId) {
+      logMatch(byId, 'client_reference_id');
+      return byId;
+    }
   }
   const customerId = customerIdOf(session.customer);
   if (customerId) {
     const byCustomer = await deps.findUserByCustomerId(customerId);
-    if (byCustomer) return byCustomer;
+    if (byCustomer) {
+      logMatch(byCustomer, 'stripe_customer_id');
+      return byCustomer;
+    }
   }
   const email = session.customer_details?.email ?? session.customer_email ?? null;
   if (email) {
     const byEmail = await deps.findUserByEmail(email);
-    if (byEmail) return byEmail;
+    if (byEmail) {
+      logMatch(byEmail, 'email_fallback');
+      return byEmail;
+    }
   }
   return null;
 }
@@ -87,25 +120,69 @@ async function resolveSubscriptionUser(subscription, deps) {
   const customerId = customerIdOf(subscription.customer);
   if (customerId) {
     const byCustomer = await deps.findUserByCustomerId(customerId);
-    if (byCustomer) return byCustomer;
+    if (byCustomer) {
+      logMatch(byCustomer, 'stripe_customer_id');
+      return byCustomer;
+    }
   }
   if (subscription.id) {
     const bySubscription = await deps.findUserBySubscriptionId(subscription.id);
-    if (bySubscription) return bySubscription;
+    if (bySubscription) {
+      logMatch(bySubscription, 'stripe_subscription_id');
+      return bySubscription;
+    }
   }
   const metaId = subscription.metadata?.supabase_user_id;
   if (typeof metaId === 'string' && UUID_RE.test(metaId)) {
     const byMeta = await deps.findUserById(metaId);
-    if (byMeta) return byMeta;
+    if (byMeta) {
+      logMatch(byMeta, 'subscription_metadata');
+      return byMeta;
+    }
   }
   if (customerId && deps.customerEmail) {
     const email = await deps.customerEmail(customerId);
     if (email) {
       const byEmail = await deps.findUserByEmail(email);
-      if (byEmail) return byEmail;
+      if (byEmail) {
+        logMatch(byEmail, 'email_fallback');
+        return byEmail;
+      }
     }
   }
   return null;
+}
+
+async function finalize(event, deps, userId, incomingSubscriptionId, row) {
+  const stored = deps.getStoredSubscription ? await deps.getStoredSubscription(userId) : null;
+  if (stored) {
+    if (
+      incomingSubscriptionId &&
+      stored.stripe_subscription_id &&
+      incomingSubscriptionId !== stored.stripe_subscription_id &&
+      (stored.status === 'active' || stored.status === 'trialing')
+    ) {
+      console.log(
+        'Ignored other Stripe subscription',
+        incomingSubscriptionId,
+        'for user',
+        userId,
+        'keeping',
+        stored.stripe_subscription_id,
+      );
+      return { op: 'ignore', reason: 'other subscription while a live subscription is stored' };
+    }
+    const storedSeconds = storedEventSeconds(stored.last_stripe_event_created);
+    if (typeof event.created === 'number' && storedSeconds != null && event.created < storedSeconds) {
+      console.log('Ignored stale Stripe event', event.created, 'for user', userId);
+      return { op: 'ignore', reason: 'stale stripe event' };
+    }
+  }
+  if (typeof event.created === 'number' && Number.isFinite(event.created)) {
+    row.last_stripe_event_created = new Date(event.created * 1000).toISOString();
+  }
+  console.log('Applying Stripe subscription event', event.type, 'for user', userId, 'status', row.status);
+  return { op: 'upsert', row };
 }
 
 /**
@@ -126,7 +203,7 @@ export async function planSubscriptionSync(event, deps) {
     if (!userId) return { op: 'ignore', reason: 'checkout user not mapped' };
     const row = rowFromSubscription(subscription, userId);
     if (!row) return { op: 'ignore', reason: `unsupported status ${subscription.status}` };
-    return { op: 'upsert', row };
+    return finalize(event, deps, userId, subscription.id ?? subId, row);
   }
 
   if (
@@ -139,7 +216,7 @@ export async function planSubscriptionSync(event, deps) {
     if (!userId) return { op: 'ignore', reason: 'subscription user not mapped' };
     const row = rowFromSubscription(object, userId);
     if (!row) return { op: 'ignore', reason: `unsupported status ${object.status}` };
-    return { op: 'upsert', row };
+    return finalize(event, deps, userId, object.id ?? null, row);
   }
 
   if (type === 'customer.subscription.deleted') {
@@ -147,7 +224,7 @@ export async function planSubscriptionSync(event, deps) {
     if (!userId) return { op: 'ignore', reason: 'deleted subscription user not mapped' };
     const row = rowFromSubscription({ ...object, status: 'canceled' }, userId);
     if (!row) return { op: 'ignore', reason: 'deleted subscription could not be stored' };
-    return { op: 'upsert', row: { ...row, subscription_type: 'free', status: 'canceled' } };
+    return finalize(event, deps, userId, object.id ?? null, { ...row, subscription_type: 'free', status: 'canceled' });
   }
 
   if (type === 'invoice.paid' || type === 'invoice.payment_failed') {
@@ -159,21 +236,18 @@ export async function planSubscriptionSync(event, deps) {
       if (!userId) return { op: 'ignore', reason: 'invoice user not mapped' };
       const row = rowFromSubscription(subscription, userId);
       if (!row) return { op: 'ignore', reason: `unsupported status ${subscription.status}` };
-      return { op: 'upsert', row };
+      return finalize(event, deps, userId, subscription.id ?? subId, row);
     }
     if (type === 'invoice.payment_failed') {
       const userId = await deps.findUserBySubscriptionId(subId);
       if (!userId) return { op: 'ignore', reason: 'past_due user not mapped' };
-      return {
-        op: 'upsert',
-        row: {
-          user_id: userId,
-          subscription_type: 'free',
-          status: 'past_due',
-          stripe_subscription_id: subId,
-          stripe_customer_id: customerIdOf(object.customer),
-        },
-      };
+      return finalize(event, deps, userId, subId, {
+        user_id: userId,
+        subscription_type: 'free',
+        status: 'past_due',
+        stripe_subscription_id: subId,
+        stripe_customer_id: customerIdOf(object.customer),
+      });
     }
     return { op: 'ignore', reason: 'paid invoice subscription could not be loaded' };
   }
