@@ -332,6 +332,8 @@ export type Database = {
           user_id: string;
           subscription_type: string;
           stripe_subscription_id: string | null;
+          stripe_customer_id: string | null;
+          last_stripe_event_created: string | null;
           status: string;
           current_period_start: string;
           current_period_end: string;
@@ -343,6 +345,8 @@ export type Database = {
           user_id: string;
           subscription_type?: string;
           stripe_subscription_id?: string | null;
+          stripe_customer_id?: string | null;
+          last_stripe_event_created?: string | null;
           status?: string;
           current_period_start?: string;
           current_period_end?: string;
@@ -354,6 +358,8 @@ export type Database = {
           user_id?: string;
           subscription_type?: string;
           stripe_subscription_id?: string | null;
+          stripe_customer_id?: string | null;
+          last_stripe_event_created?: string | null;
           status?: string;
           current_period_start?: string;
           current_period_end?: string;
