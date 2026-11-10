@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { Dashboard } from './Dashboard';
+import { Layout } from './Layout';
 import { Maintenance } from './Maintenance';
 import { Payments } from './Payments';
 import { Properties } from './Properties';
@@ -223,8 +225,8 @@ describe('live dropdowns', () => {
     await waitFor(() => expect(select.value).toBe('vacant'));
     expect(countButton('Occupied')).toHaveTextContent('0');
     expect(countButton('Vacant')).toHaveTextContent('1');
-    expect(screen.getByRole('status')).toHaveTextContent(/previous value was restored/i);
-    expect(screen.getByRole('status')).toHaveTextContent(/permission denied/i);
+    expect(screen.getByRole('alert')).toHaveTextContent(/previous value was restored/i);
+    expect(screen.getByRole('alert')).toHaveTextContent(/permission denied/i);
   });
 
   it('keeps the property form status select controlled, including switching back', async () => {
@@ -243,6 +245,47 @@ describe('live dropdowns', () => {
     expect(status).toHaveValue('occupied');
     await user.selectOptions(status, 'vacant');
     expect(status).toHaveValue('vacant');
+  });
+
+  it('at the property cap, Add Property opens the upgrade notice and not the form', async () => {
+    propertiesCollection.replaceAll(
+      Array.from({ length: 5 }, (_, index) => property({
+        id: `prop-${index + 1}`,
+        address: `${index + 1} Cap St`,
+      })),
+    );
+    const user = userEvent.setup();
+    render(<Properties />);
+
+    const addButtons = await screen.findAllByRole('button', { name: 'Add Property' });
+    expect(screen.queryByRole('dialog', { name: 'Free plan property limit' })).not.toBeInTheDocument();
+    await user.click(addButtons[0]);
+
+    const dialog = screen.getByRole('dialog', { name: 'Free plan property limit' });
+    expect(within(dialog).getByRole('button', { name: 'Upgrade to Premium' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Add New Property' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Address *')).not.toBeInTheDocument();
+  });
+
+  it('shows an error toast from the app layout and reverts when a dropdown save throws', async () => {
+    setHandleWrite(() => {
+      throw new TypeError('Failed to fetch');
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <Layout>
+          <Properties />
+        </Layout>
+      </MemoryRouter>,
+    );
+
+    const select = await screen.findByLabelText('Status for 1 Main St') as HTMLSelectElement;
+    await user.selectOptions(select, 'occupied');
+    await waitFor(() => expect(select.value).toBe('vacant'));
+    const toast = screen.getByRole('alert');
+    expect(toast).toHaveTextContent(/previous value was restored/i);
+    expect(toast).toHaveTextContent(/Failed to fetch/i);
   });
 
   it('rolls back a rejected insert and shows the free-plan limit notice', async () => {

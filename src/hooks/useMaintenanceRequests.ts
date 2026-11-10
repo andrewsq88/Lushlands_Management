@@ -106,14 +106,18 @@ export function useMaintenanceRequests() {
       id,
       updates,
       async () => {
-        const { data, error } = await supabase
-          .from('maintenance_requests')
-          .update(updates)
-          .eq('id', id)
-          .select(requestSelect)
-          .single();
-        if (error || !data) return { data: null, error: error ?? new Error('Maintenance update failed') };
-        return { data: data as MaintenanceRequest, error: null };
+        try {
+          const { data, error } = await supabase
+            .from('maintenance_requests')
+            .update(updates)
+            .eq('id', id)
+            .select(requestSelect)
+            .single();
+          if (error || !data) return { data: null, error: error ?? new Error('Maintenance update failed') };
+          return { data: data as MaintenanceRequest, error: null };
+        } catch (error) {
+          return { data: null, error };
+        }
       },
       "Couldn't update the maintenance request. The previous value was restored.",
     );

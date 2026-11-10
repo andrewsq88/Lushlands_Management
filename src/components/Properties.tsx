@@ -20,6 +20,7 @@ export function Properties() {
     clearError 
   } = usePremiumFeatures();
   const [showForm, setShowForm] = useState(false);
+  const [limitNoticeOpen, setLimitNoticeOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState(null);
   const [showPhotosModal, setShowPhotosModal] = useState(false);
   const [selectedPropertyForPhotos, setSelectedPropertyForPhotos] = useState(null);
@@ -66,11 +67,11 @@ export function Properties() {
   const atPropertyLimit = !subscriptionLoading && !isPremium && properties.length >= FREE_PROPERTY_LIMIT;
 
   const openAddForm = () => {
-    if (atPropertyLimit) {
-      document.getElementById('property-limit-notice')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    setEditingProperty(null);
+    if (!isPremium && properties.length >= FREE_PROPERTY_LIMIT) {
+      setLimitNoticeOpen(true);
       return;
     }
-    setEditingProperty(null);
     setShowForm(true);
   };
 
@@ -332,6 +333,26 @@ export function Properties() {
       </div>
 
       {/* Property Form Modal */}
+      {limitNoticeOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-600 bg-opacity-50 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Free plan property limit"
+            className="w-full max-w-lg"
+          >
+            <PropertyLimitNotice id="property-limit-dialog" onUpgrade={createPremiumSubscription} />
+            <button
+              type="button"
+              onClick={() => setLimitNoticeOpen(false)}
+              className="mt-3 w-full px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
       {showForm && (
         <PropertyForm
           property={editingProperty}

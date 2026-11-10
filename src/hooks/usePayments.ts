@@ -80,14 +80,18 @@ export function usePayments() {
       id,
       updates,
       async () => {
-        const { data, error } = await supabase
-          .from('payments')
-          .update(updates)
-          .eq('id', id)
-          .select(paymentSelect)
-          .single();
-        if (error || !data) return { data: null, error: error ?? new Error('Payment update failed') };
-        return { data: data as Payment, error: null };
+        try {
+          const { data, error } = await supabase
+            .from('payments')
+            .update(updates)
+            .eq('id', id)
+            .select(paymentSelect)
+            .single();
+          if (error || !data) return { data: null, error: error ?? new Error('Payment update failed') };
+          return { data: data as Payment, error: null };
+        } catch (error) {
+          return { data: null, error };
+        }
       },
       "Couldn't update the payment. The previous value was restored.",
     );

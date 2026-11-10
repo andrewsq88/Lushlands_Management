@@ -80,14 +80,18 @@ export function useTenants() {
       id,
       updates,
       async () => {
-        const { data, error } = await supabase
-          .from('tenants')
-          .update(updates)
-          .eq('id', id)
-          .select(tenantSelect)
-          .single();
-        if (error || !data) return { data: null, error: error ?? new Error('Tenant update failed') };
-        return { data: data as Tenant, error: null };
+        try {
+          const { data, error } = await supabase
+            .from('tenants')
+            .update(updates)
+            .eq('id', id)
+            .select(tenantSelect)
+            .single();
+          if (error || !data) return { data: null, error: error ?? new Error('Tenant update failed') };
+          return { data: data as Tenant, error: null };
+        } catch (error) {
+          return { data: null, error };
+        }
       },
       "Couldn't update the tenant. The previous value was restored.",
     );
