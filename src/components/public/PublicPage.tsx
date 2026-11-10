@@ -65,7 +65,7 @@ const guideLink =
 const DAILY_PULSE_HREF =
   'https://thedailypulse.space/?utm_source=lushlands&utm_medium=crosslink&utm_campaign=footer-2026-11';
 const WEEKLY_MEAL_PLAN_HREF =
-  'https://weeklymealplan.space/?utm_source=lushlands&utm_medium=crosslink&utm_campaign=footer-2026-11';
+  'https://www.weeklymealplan.space/?utm_source=lushlands&utm_medium=crosslink&utm_campaign=footer-2026-11';
 
 function PageBody({ path }: { path: string }) {
   if (path === '/') return <HomeBody />;

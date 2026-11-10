@@ -214,7 +214,7 @@ try {
   const dailyPulseHref =
     'href="https://thedailypulse.space/?utm_source=lushlands&amp;utm_medium=crosslink&amp;utm_campaign=footer-2026-11"';
   const weeklyMealPlanHref =
-    'href="https://weeklymealplan.space/?utm_source=lushlands&amp;utm_medium=crosslink&amp;utm_campaign=footer-2026-11"';
+    'href="https://www.weeklymealplan.space/?utm_source=lushlands&amp;utm_medium=crosslink&amp;utm_campaign=footer-2026-11"';
   const otherSitesTitle = 'Explore our other sites';
 
   const aiCrawlers = ['GPTBot', 'OAI-SearchBot', 'ClaudeBot', 'PerplexityBot', 'Google-Extended'];
