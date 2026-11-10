@@ -64,7 +64,9 @@ export function buildRobotsTxt(): string {
   const aiGroups = AI_CRAWLERS.map((agent) => agentGroup(agent, aiRules)).join('\n\n');
 
   return `# Public pages are allowed by default:
-# /, /welcome, /faq, /terms, /privacy, /disclaimer.
+# /, /welcome, /faq, /terms, /privacy, /disclaimer,
+# /guides/track-rent-payments, /guides/maintenance-log-template,
+# /guides/tenant-records, /guides/property-management-for-letting-agents.
 # The signed-in dashboard uses /, which is also the public homepage, so / stays allowed.
 # Disallow auth, payment, checkout, and private dashboard routes.
 # There is no /dashboard or /sign-in path.

@@ -3,7 +3,8 @@
  * Homepage title and description match index.html.
  * Absolute URLs use www because the apex host 307-redirects there.
  */
-import { publicJsonLdScript, publicJsonLdText } from './structuredData';
+import { guideJsonLdFor, GUIDES } from './guides';
+import { publicJsonLdText } from './structuredData';
 import { type PublicPath } from './publicPaths';
 import { OG_IMAGE, SITE_ORIGIN } from './site';
 
@@ -15,23 +16,44 @@ export interface PageMetaValues {
   canonical: string;
   /** Open Graph and Twitter description. Defaults to `description`. */
   socialDescription?: string;
+  /** Open Graph type. Public guides are articles. */
+  ogType?: string;
   keywords?: string;
   jsonLd: string;
 }
 
 export { OG_IMAGE, SITE_ORIGIN } from './site';
 
-const JSON_LD = publicJsonLdText();
-
 function canonicalFor(path: PublicPath): string {
   return path === '/' ? `${SITE_ORIGIN}/` : `${SITE_ORIGIN}${path}`;
 }
 
-function page(values: Omit<PageMetaValues, 'canonical' | 'jsonLd'>): PageMetaValues {
+function page(
+  values: Omit<PageMetaValues, 'canonical' | 'jsonLd'>,
+  options?: { includeFaq?: boolean },
+): PageMetaValues {
   return {
     ...values,
     canonical: canonicalFor(values.path),
-    jsonLd: JSON_LD,
+    jsonLd: publicJsonLdText({ includeFaq: options?.includeFaq === true }),
+  };
+}
+
+function guidePage(guide: (typeof GUIDES)[number]): PageMetaValues {
+  if (guide.title.length >= 60) {
+    throw new Error(`Guide title must be under 60 characters: ${guide.title}`);
+  }
+  if (guide.description.length >= 155) {
+    throw new Error(`Guide description must be under 155 characters: ${guide.path}`);
+  }
+  return {
+    path: guide.path,
+    heading: guide.h1,
+    title: guide.title,
+    description: guide.description,
+    ogType: 'article',
+    canonical: canonicalFor(guide.path),
+    jsonLd: guideJsonLdFor(guide),
   };
 }
 
@@ -41,8 +63,6 @@ export const HOME_PAGE_HEAD: PageMetaValues = page({
   title: 'LushLands Management - Professional Property Management Platform',
   description:
     'Property management software for landlords and property managers in any country. Record properties, tenants, maintenance, and payments in one place, with optional audio and video tools.',
-  socialDescription:
-    'Property management software for landlords and property managers in any country. Record properties, tenants, maintenance, and payments in one place.',
   keywords: 'property management, landlord, property manager, letting agent, tenant, maintenance, payments',
 });
 
@@ -60,7 +80,7 @@ export const FAQ_PAGE_HEAD: PageMetaValues = page({
   title: 'FAQ | LushLands Management',
   description:
     'Answers about LushLands Management for landlords and property managers worldwide, including features, the free plan, Premium, payments, and AI audio.',
-});
+}, { includeFaq: true });
 
 export const TERMS_PAGE_HEAD: PageMetaValues = page({
   path: '/terms',
@@ -86,6 +106,11 @@ export const DISCLAIMER_PAGE_HEAD: PageMetaValues = page({
     'LushLands Management is not legal, financial, or tax advice. You are responsible for local laws. AI and audio content may contain errors.',
 });
 
+export const TRACK_RENT_PAGE_HEAD: PageMetaValues = guidePage(GUIDES[0]);
+export const MAINTENANCE_LOG_PAGE_HEAD: PageMetaValues = guidePage(GUIDES[1]);
+export const TENANT_RECORDS_PAGE_HEAD: PageMetaValues = guidePage(GUIDES[2]);
+export const LETTING_AGENTS_PAGE_HEAD: PageMetaValues = guidePage(GUIDES[3]);
+
 export const PUBLIC_PAGES: readonly PageMetaValues[] = [
   HOME_PAGE_HEAD,
   WELCOME_PAGE_HEAD,
@@ -93,6 +118,10 @@ export const PUBLIC_PAGES: readonly PageMetaValues[] = [
   TERMS_PAGE_HEAD,
   PRIVACY_PAGE_HEAD,
   DISCLAIMER_PAGE_HEAD,
+  TRACK_RENT_PAGE_HEAD,
+  MAINTENANCE_LOG_PAGE_HEAD,
+  TENANT_RECORDS_PAGE_HEAD,
+  LETTING_AGENTS_PAGE_HEAD,
 ];
 
 const pagesByPath = new Map<string, PageMetaValues>(PUBLIC_PAGES.map((entry) => [entry.path, entry]));
@@ -128,7 +157,7 @@ export function renderHead(page: PageMetaValues): string {
 
   lines.push(
     '<meta name="author" content="LushLands Management" />',
-    '<meta property="og:type" content="website" />',
+    `<meta property="og:type" content="${escapeHtml(page.ogType ?? 'website')}" />`,
     '<meta property="og:site_name" content="LushLands Management" />',
     `<meta property="og:url" content="${escapeHtml(page.canonical)}" />`,
     `<meta property="og:title" content="${escapeHtml(page.title)}" />`,
@@ -140,7 +169,7 @@ export function renderHead(page: PageMetaValues): string {
     `<meta name="twitter:description" content="${escapeHtml(social)}" />`,
     `<meta name="twitter:image" content="${escapeHtml(OG_IMAGE)}" />`,
     `<link rel="canonical" href="${escapeHtml(page.canonical)}" />`,
-    publicJsonLdScript(),
+    `<script type="application/ld+json" data-seo="public">${page.jsonLd}</script>`,
   );
 
   return lines.join('\n    ');

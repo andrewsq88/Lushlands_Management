@@ -18,6 +18,10 @@ Sign-in, payment, checkout, and private dashboard addresses are not public pages
 - [Terms and Conditions](https://www.lushlandsmanagement.com/terms): Terms for using the software
 - [Privacy Policy](https://www.lushlandsmanagement.com/privacy): How account data, property records, Stripe payments, and generated audio are handled
 - [Disclaimer](https://www.lushlandsmanagement.com/disclaimer): The product is not legal, financial, or tax advice
+- [How to Track Rent Payments as a Landlord](https://www.lushlandsmanagement.com/guides/track-rent-payments): How landlords can track rent payments: what to record, a seven-step system, handling late rent and a monthly checklist.
+- [Rental Property Maintenance Log Template](https://www.lushlandsmanagement.com/guides/maintenance-log-template): A rental property maintenance log template for landlords: what to record, how to set priorities and a simple repairs process.
+- [How to Keep Tenant Records as a Landlord](https://www.lushlandsmanagement.com/guides/tenant-records): What landlords should keep in tenant records, how to organise them, handling personal data responsibly and a simple template.
+- [Property Management Software for Letting Agents](https://www.lushlandsmanagement.com/guides/property-management-for-letting-agents): What letting agents need from property management software, how to set up a system and a weekly review for property managers.
 
 ## Optional
 
