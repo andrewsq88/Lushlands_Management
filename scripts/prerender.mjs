@@ -32,10 +32,20 @@ const REQUIRED_HEAD = [
   'name="twitter:title"',
   'name="twitter:description"',
   'type="application/ld+json"',
-  '"@type":"Organization"',
-  '"@type":"SoftwareApplication"',
-  '"@type":"FAQPage"',
 ];
+
+function requiredHead(page) {
+  if (page.path.startsWith('/guides/')) {
+    return [
+      ...REQUIRED_HEAD,
+      '"@type":"Article"',
+      '"@type":"FAQPage"',
+      '"@type":"HowTo"',
+      '"@type":"BreadcrumbList"',
+    ];
+  }
+  return [...REQUIRED_HEAD, '"@type":"Organization"', '"@type":"SoftwareApplication"', '"@type":"FAQPage"'];
+}
 
 function inject(template, page) {
   if (!headRe.test(page.head) && page.head.includes('<script') && !page.head.includes('type="application/ld+json"')) {
@@ -54,7 +64,7 @@ function inject(template, page) {
   if (!document.includes('data-ssg="true"')) {
     throw new Error(`Prerender marker missing for ${page.path}`);
   }
-  for (const token of REQUIRED_HEAD) {
+  for (const token of requiredHead(page)) {
     if (!document.includes(token)) {
       throw new Error(`${page.path} is missing ${token}`);
     }
@@ -137,7 +147,18 @@ try {
   if (!/property management software/i.test(llms) || !/any country/i.test(llms)) {
     throw new Error('llms.txt must describe the product for landlords in any country.');
   }
-  for (const publicPath of ['/', '/welcome', '/faq', '/terms', '/privacy', '/disclaimer']) {
+  for (const publicPath of [
+    '/',
+    '/welcome',
+    '/faq',
+    '/terms',
+    '/privacy',
+    '/disclaimer',
+    '/guides/track-rent-payments',
+    '/guides/maintenance-log-template',
+    '/guides/tenant-records',
+    '/guides/property-management-for-letting-agents',
+  ]) {
     const url = publicPath === '/'
       ? 'https://www.lushlandsmanagement.com/'
       : `https://www.lushlandsmanagement.com${publicPath}`;
@@ -219,7 +240,19 @@ try {
       throw new Error(`robots.txt dropped a Disallow for ${blocked}.`);
     }
   }
-  for (const allowed of ['/\n', '/welcome\n', '/faq\n', '/terms\n', '/privacy\n', '/disclaimer\n', '/llms.txt\n']) {
+  for (const allowed of [
+    '/\n',
+    '/welcome\n',
+    '/faq\n',
+    '/terms\n',
+    '/privacy\n',
+    '/disclaimer\n',
+    '/guides/track-rent-payments\n',
+    '/guides/maintenance-log-template\n',
+    '/guides/tenant-records\n',
+    '/guides/property-management-for-letting-agents\n',
+    '/llms.txt\n',
+  ]) {
     const count = robots.split(`Allow: ${allowed}`).length - 1;
     if (count < aiCrawlers.length) {
       throw new Error(`robots.txt is missing Allow: ${allowed.trim()} for an AI crawler.`);
@@ -242,6 +275,16 @@ try {
     }
     if (!html.includes(otherSitesTitle) || !html.includes(dailyPulseHref) || !html.includes(weeklyMealPlanHref)) {
       throw new Error(`${route} is missing the other-sites footer.`);
+    }
+    for (const guidePath of [
+      '/guides/track-rent-payments',
+      '/guides/maintenance-log-template',
+      '/guides/tenant-records',
+      '/guides/property-management-for-letting-agents',
+    ]) {
+      if (!html.includes(`href="${guidePath}"`)) {
+        throw new Error(`${route} footer is missing ${guidePath}`);
+      }
     }
     if (html.split(dailyPulseHref).length - 1 !== 1 || html.split(weeklyMealPlanHref).length - 1 !== 1) {
       throw new Error(`${route} must contain each other-sites link once.`);
@@ -267,6 +310,92 @@ try {
     if (!html.includes(verification)) {
       throw new Error(`${route} dropped google-site-verification.`);
     }
+  }
+
+  const guideChecks = [
+    {
+      dir: 'guides/track-rent-payments',
+      h1: 'How to track rent payments as a landlord',
+      title: 'How to Track Rent Payments as a Landlord',
+      button: 'Start tracking rent',
+      steps: 7,
+      question: 'What should a landlord record for each rent payment?',
+    },
+    {
+      dir: 'guides/maintenance-log-template',
+      h1: 'Rental property maintenance log: template and guide',
+      title: 'Rental Property Maintenance Log Template',
+      button: 'Start my maintenance log',
+      steps: 6,
+      question: 'What should a landlord maintenance log include?',
+    },
+    {
+      dir: 'guides/tenant-records',
+      h1: 'How to keep tenant records',
+      title: 'How to Keep Tenant Records as a Landlord',
+      button: 'Organise my tenant records',
+      steps: 6,
+      question: 'What records should a landlord keep for each tenant?',
+    },
+    {
+      dir: 'guides/property-management-for-letting-agents',
+      h1: 'Property management for letting agents',
+      title: 'Property Management Software for Letting Agents',
+      button: 'Try LushLands',
+      steps: 6,
+      question: 'Can letting agents use LushLands?',
+    },
+  ];
+  const sitemapXml = fs.readFileSync(path.join(dist, 'sitemap.xml'), 'utf8');
+  for (const guide of guideChecks) {
+    const html = fs.readFileSync(path.join(dist, guide.dir, 'index.html'), 'utf8');
+    const canonical = `https://www.lushlandsmanagement.com/${guide.dir}`;
+    if (!html.includes(`<title>${guide.title}</title>`)) {
+      throw new Error(`${guide.dir} title does not match the approved copy.`);
+    }
+    if ((html.match(/<h1\b/g) ?? []).length !== 1 || !html.includes(`>${guide.h1}<`)) {
+      throw new Error(`${guide.dir} must have exactly one H1.`);
+    }
+    if (!html.includes('Short answer:') || !html.includes(`<h3`) || !html.includes(guide.question)) {
+      throw new Error(`${guide.dir} is missing the short answer or FAQ.`);
+    }
+    if ((html.match(/<h3\b/g) ?? []).length !== 5) {
+      throw new Error(`${guide.dir} must show five FAQ questions.`);
+    }
+    const buttonAt = html.indexOf(`>${guide.button}</a>`);
+    const firstAd = html.indexOf('data-ad-slot=');
+    const secondAd = html.indexOf('data-ad-slot=', firstAd + 1);
+    const footerAt = html.indexOf('<footer');
+    if (buttonAt < 0 || firstAd < 0 || secondAd < 0 || !(buttonAt < firstAd && firstAd < secondAd && secondAd < footerAt)) {
+      throw new Error(`${guide.dir} ads must be the two slots below the main button and above the footer.`);
+    }
+    if ((html.match(/data-ad-slot=/g) ?? []).length !== 2) {
+      throw new Error(`${guide.dir} must have exactly two ad slots.`);
+    }
+    if (html.slice(footerAt).includes('data-ad-slot=')) {
+      throw new Error(`${guide.dir} has an ad inside the footer.`);
+    }
+    if (!html.includes('href="/auth"') || !html.includes(`rel="canonical" href="${canonical}"`)) {
+      throw new Error(`${guide.dir} is missing /auth or its canonical URL.`);
+    }
+    if (!html.includes('"@type":"FAQPage"') || !html.includes('"@type":"HowTo"') || !html.includes('"@type":"BreadcrumbList"') || !html.includes('"@type":"Article"')) {
+      throw new Error(`${guide.dir} JSON-LD is missing a required type.`);
+    }
+    if ((html.match(/"@type":"HowToStep"/g) ?? []).length !== guide.steps) {
+      throw new Error(`${guide.dir} HowTo step count does not match the numbered list.`);
+    }
+    if (/Premium|affiliate|5 properties|property limit/i.test(html)) {
+      throw new Error(`${guide.dir} includes a Premium, property-limit, or affiliate claim.`);
+    }
+    if (!sitemapXml.includes(`<loc>${canonical}</loc>`)) {
+      throw new Error(`Sitemap is missing ${canonical}`);
+    }
+    if (!html.includes('Explore our other sites')) {
+      throw new Error(`${guide.dir} is missing the public footer.`);
+    }
+  }
+  if (spa.includes('Start tracking rent') || spa.includes('Try LushLands')) {
+    throw new Error('spa.html must not include the public guides.');
   }
 
   console.log(`Prerendered ${pages.length} public pages and wrote sitemap.xml`);

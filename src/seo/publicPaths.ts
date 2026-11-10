@@ -1,5 +1,16 @@
 /** Indexable marketing and policy pages. Auth, payment, and dashboard routes are not included. */
-export const PUBLIC_PATHS = ['/', '/welcome', '/faq', '/terms', '/privacy', '/disclaimer'] as const;
+export const PUBLIC_PATHS = [
+  '/',
+  '/welcome',
+  '/faq',
+  '/terms',
+  '/privacy',
+  '/disclaimer',
+  '/guides/track-rent-payments',
+  '/guides/maintenance-log-template',
+  '/guides/tenant-records',
+  '/guides/property-management-for-letting-agents',
+] as const;
 
 export type PublicPath = (typeof PUBLIC_PATHS)[number];
 

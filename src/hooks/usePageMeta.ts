@@ -86,6 +86,7 @@ export function usePageMeta({
   description,
   canonical,
   socialDescription,
+  ogType,
   jsonLd,
 }: PageMetaValues) {
   const social = socialDescription ?? description;
@@ -94,6 +95,7 @@ export function usePageMeta({
     const previousTitle = document.title;
     const slots: MetaSlot[] = [
       { attribute: 'name', key: 'description', content: description },
+      { attribute: 'property', key: 'og:type', content: ogType ?? 'website' },
       { attribute: 'property', key: 'og:title', content: title },
       { attribute: 'property', key: 'og:description', content: social },
       { attribute: 'property', key: 'og:url', content: canonical },
@@ -135,5 +137,5 @@ export function usePageMeta({
 
       canonicalLink.setAttribute('href', previousCanonical);
     };
-  }, [title, description, canonical, social, jsonLd]);
+  }, [title, description, canonical, social, ogType, jsonLd]);
 }

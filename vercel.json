@@ -8,6 +8,10 @@
     { "source": "/terms/", "destination": "/terms", "permanent": true },
     { "source": "/privacy/", "destination": "/privacy", "permanent": true },
     { "source": "/disclaimer/", "destination": "/disclaimer", "permanent": true },
+    { "source": "/guides/track-rent-payments/", "destination": "/guides/track-rent-payments", "permanent": true },
+    { "source": "/guides/maintenance-log-template/", "destination": "/guides/maintenance-log-template", "permanent": true },
+    { "source": "/guides/tenant-records/", "destination": "/guides/tenant-records", "permanent": true },
+    { "source": "/guides/property-management-for-letting-agents/", "destination": "/guides/property-management-for-letting-agents", "permanent": true },
     { "source": "/Possible Property Hub Logo.png", "destination": "/possible-property-hub-logo.png", "permanent": true }
   ],
   "rewrites": [

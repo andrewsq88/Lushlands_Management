@@ -2,7 +2,9 @@ import { Building2, CreditCard, Wrench } from 'lucide-react';
 import { AdsterraRectangle } from '../AdsterraBanner';
 import { AdsterraNative } from '../AdsterraNative';
 import { LOGO_PATH } from '../../seo/site';
+import { GuideArticle } from './guidePages';
 import { DisclaimerPage, FaqPage, PrivacyPage, TermsPage } from './legalPages';
+import { GUIDES } from '../../seo/guides';
 
 /**
  * Public marketing and policy pages.
@@ -57,6 +59,9 @@ const textLink = 'text-blue-600 hover:text-blue-700';
 const otherSiteLink =
   'inline-block rounded-sm px-1 py-1 text-gray-700 underline decoration-gray-400 underline-offset-2 hover:text-blue-600 hover:decoration-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50';
 
+const guideLink =
+  'inline-block rounded-sm px-1 py-1 hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50';
+
 const DAILY_PULSE_HREF =
   'https://thedailypulse.space/?utm_source=lushlands&utm_medium=crosslink&utm_campaign=footer-2026-11';
 const WEEKLY_MEAL_PLAN_HREF =
@@ -69,6 +74,7 @@ function PageBody({ path }: { path: string }) {
   if (path === '/privacy') return <PrivacyPage />;
   if (path === '/disclaimer') return <DisclaimerPage />;
   if (path === '/faq') return <FaqPage />;
+  if (path.startsWith('/guides/')) return <GuideArticle path={path} />;
   return <HomeBody />;
 }
 
@@ -272,6 +278,13 @@ function PublicFooter() {
         <a href="/terms" className="hover:text-blue-600">Terms</a>
         <a href="/privacy" className="hover:text-blue-600">Privacy</a>
         <a href="/disclaimer" className="hover:text-blue-600">Disclaimer</a>
+      </nav>
+      <nav aria-label="Guides" className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+        {GUIDES.map((guide) => (
+          <a key={guide.path} href={guide.path} className={guideLink}>
+            {guide.title}
+          </a>
+        ))}
       </nav>
       <nav aria-labelledby="explore-other-sites" className="mt-6">
         <h2 id="explore-other-sites" className="text-sm font-medium text-gray-700">

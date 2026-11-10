@@ -56,6 +56,7 @@ export function publicJsonLdText(): string {
   return JSON.stringify(publicJsonLd()).replace(/</g, '\\u003c');
 }
 
+
 export function publicJsonLdScript(): string {
   return `<script type="application/ld+json" data-seo="public">${publicJsonLdText()}</script>`;
 }
