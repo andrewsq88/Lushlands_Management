@@ -1,5 +1,13 @@
 import Stripe from 'npm:stripe@14.21.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { applySubscriptionEvent } from '../_shared/applySubscriptionEvent.ts';
+import {
+  STRIPE_WEBHOOK_SECRET_2_ENV,
+  isSubscriptionSyncEvent,
+  subscriptionSyncHttpResponse,
+  verificationLogLine,
+  verifyAgainstSecrets,
+} from '../_shared/subscriptionSync.mjs';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,23 +22,31 @@ Deno.serve(async (req) => {
   try {
     const signature = req.headers.get('stripe-signature');
     const body = await req.text();
-    
+
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
     });
 
-    const endpointSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
-    let event;
+    const secrets = [
+      Deno.env.get('STRIPE_WEBHOOK_SECRET'),
+      Deno.env.get(STRIPE_WEBHOOK_SECRET_2_ENV),
+    ];
+    if (!secrets.some((secret) => typeof secret === 'string' && secret.length > 0)) {
+      throw new Error('Webhook signing secret is not configured');
+    }
 
-    try {
-      event = stripe.webhooks.constructEvent(body, signature!, endpointSecret!);
-    } catch (err) {
-      console.log(`Webhook signature verification failed.`, err.message);
+    const verified = verifyAgainstSecrets(body, signature, secrets, (payload, sig, secret) =>
+      stripe.webhooks.constructEvent(payload, sig, secret)
+    );
+    console.log(verificationLogLine(verified.verified));
+    if (!verified.verified || !verified.event) {
       return new Response(
         JSON.stringify({ error: 'Webhook signature verification failed' }),
         { status: 400, headers: corsHeaders }
       );
     }
+
+    const event = verified.event;
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -45,9 +61,9 @@ Deno.serve(async (req) => {
         if (paymentId) {
           const { error } = await supabase
             .from('payments')
-            .update({ 
+            .update({
               status: 'paid',
-              stripe_payment_id: session.id 
+              stripe_payment_id: session.id
             })
             .eq('id', paymentId);
 
@@ -69,9 +85,9 @@ Deno.serve(async (req) => {
         if (paymentId) {
           const { error } = await supabase
             .from('payments')
-            .update({ 
+            .update({
               status: 'paid',
-              stripe_payment_id: paymentIntent.id 
+              stripe_payment_id: paymentIntent.id
             })
             .eq('id', paymentId);
 
@@ -94,23 +110,29 @@ Deno.serve(async (req) => {
       }
 
       default:
-        console.log(`Unhandled event type ${event.type}`);
+        if (!isSubscriptionSyncEvent(event.type)) {
+          console.log(`Unhandled event type ${event.type}`);
+        }
+    }
+
+    if (isSubscriptionSyncEvent(event.type)) {
+      await applySubscriptionEvent(supabase, stripe, event);
     }
 
     return new Response(
       JSON.stringify({ received: true }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       },
     );
   } catch (error) {
-    console.error('Webhook error:', error);
+    const failure = subscriptionSyncHttpResponse(error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
+      JSON.stringify(failure.body),
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: failure.status,
       },
     );
   }

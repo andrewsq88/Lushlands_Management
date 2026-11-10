@@ -26,6 +26,49 @@ export const STRIPE_SUBSCRIPTION_STATUSES = [
 /** Non-2xx so Stripe retries when the sync throws. Ignored events stay 200. */
 export const SYNC_FAILURE_STATUS = 500;
 
+/** Optional second signing secret for the other live Stripe webhook endpoint. */
+export const STRIPE_WEBHOOK_SECRET_2_ENV = 'STRIPE_WEBHOOK_SECRET_2';
+
+export const SUBSCRIPTION_SYNC_EVENTS = [
+  'checkout.session.completed',
+  'customer.subscription.created',
+  'customer.subscription.updated',
+  'customer.subscription.paused',
+  'customer.subscription.resumed',
+  'customer.subscription.deleted',
+  'invoice.paid',
+  'invoice.payment_failed',
+];
+
+export function isSubscriptionSyncEvent(eventType) {
+  return SUBSCRIPTION_SYNC_EVENTS.includes(eventType);
+}
+
+/**
+ * Try each configured signing secret. Does not log secrets or which one matched.
+ * `constructEvent` throws when the signature does not match that secret.
+ */
+export function verifyAgainstSecrets(body, signature, secrets, constructEvent) {
+  const candidates = [];
+  for (const secret of secrets || []) {
+    if (typeof secret === 'string' && secret.length > 0) candidates.push(secret);
+  }
+  if (!signature || candidates.length === 0) return { verified: false, event: null };
+  for (const secret of candidates) {
+    try {
+      const event = constructEvent(body, signature, secret);
+      if (event) return { verified: true, event };
+    } catch {
+      // Try the next configured secret.
+    }
+  }
+  return { verified: false, event: null };
+}
+
+export function verificationLogLine(verified) {
+  return verified ? 'Stripe webhook signature verified' : 'Stripe webhook signature not verified';
+}
+
 const PREMIUM_STATUSES = new Set(['active', 'trialing']);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
