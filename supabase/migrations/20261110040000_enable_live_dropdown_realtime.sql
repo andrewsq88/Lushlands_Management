@@ -1,14 +1,21 @@
 /*
   # Live dropdown updates across tabs and devices
 
-  Adds the tables edited by the status, priority, type, and property
-  dropdowns to the supabase_realtime publication.
+  Realtime postgres_changes reads only the supabase_realtime publication.
+  In production that publication currently has no member tables.
+
+  This migration:
+  - publishes insert and update only (no delete, no truncate)
+  - adds the tables edited by the live dropdowns
 
   This file is the schema change only. Do not apply it to production
   from the app, a deploy, or a manual SQL session as part of this change.
-  Cross-tab delivery stays off until this migration is applied later.
-  The client ignores realtime events until a channel reports SUBSCRIBED.
+  The client ignores events until a channel reports SUBSCRIBED.
+  Local deletes already update the client store and do not need a
+  DELETE event.
 */
+
+alter publication supabase_realtime set (publish = 'insert, update');
 
 do $$
 declare
@@ -27,3 +34,10 @@ begin
     end if;
   end loop;
 end $$;
+
+-- Rollback:
+-- alter publication supabase_realtime drop table public.properties;
+-- alter publication supabase_realtime drop table public.maintenance_requests;
+-- alter publication supabase_realtime drop table public.payments;
+-- alter publication supabase_realtime drop table public.tenants;
+-- alter publication supabase_realtime set (publish = 'insert, update, delete, truncate');
