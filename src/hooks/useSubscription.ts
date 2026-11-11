@@ -125,8 +125,8 @@ export function useSubscription() {
       if (user.email) linkUrl.searchParams.set('prefilled_email', user.email);
       const paymentLinkUrl = linkUrl.toString();
 
-      console.log('Redirecting to Stripe Payment Link:', paymentLinkUrl);
-      console.log('User ID for subscription:', user.id);
+      // Do not log paymentLinkUrl: it carries prefilled_email.
+      console.log('Redirecting to Stripe Payment Link');
       
       // Redirect the user directly to the Stripe Payment Link
       window.location.href = paymentLinkUrl;
