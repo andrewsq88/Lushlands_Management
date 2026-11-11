@@ -1,9 +1,9 @@
-import { Analytics } from '@vercel/analytics/react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { PublicLanding } from './components/PublicLanding';
 import { useAppStartup } from './hooks/useAppStartup';
 import { useAuth } from './hooks/useAuth';
-import { analyticsBeforeSend, setAnalyticsSignedIn } from './lib/analytics';
+import { setAnalyticsSignedIn } from './lib/analytics';
+import { ConsentedAnalytics } from './components/ConsentedAnalytics';
 import { PUBLIC_PAGES } from './seo/pageMeta';
 
 /**
@@ -18,7 +18,7 @@ export function PublicShell() {
 
   return (
     <BrowserRouter>
-      <Analytics beforeSend={analyticsBeforeSend} />
+      <ConsentedAnalytics />
       <Routes>
         {PUBLIC_PAGES.map((page) => (
           <Route key={page.path} path={page.path} element={<PublicLanding path={page.path} />} />

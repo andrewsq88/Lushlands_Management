@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { LOWER_SLOT_ROOT_MARGIN, observeNearViewport, whenPageLoaded } from './adSlotTiming';
+import { useConsent } from '../lib/consent';
 
 /** 300x250 banner, zone 31825905. The 728x90 unit is not used. */
 const ADSTERRA_RECTANGLE = {
@@ -90,8 +91,11 @@ export function AdsterraBanner({
 }: AdsterraBannerProps) {
   const slotRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const consent = useConsent();
 
   useEffect(() => {
+    // No ad script loads until the visitor accepts cookies. The box stays reserved.
+    if (consent !== 'accepted') return;
     const slotEl = slotRef.current;
     const container = containerRef.current;
     if (!slotEl || !container) return;
@@ -129,7 +133,7 @@ export function AdsterraBanner({
       cancelled = true;
       stopObserve();
     };
-  }, [adKey, width, height, lazy]);
+  }, [adKey, width, height, lazy, consent]);
 
   const reservedHeight = height + LABEL_HEIGHT + LABEL_GAP;
 

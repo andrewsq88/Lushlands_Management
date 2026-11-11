@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { LOWER_SLOT_ROOT_MARGIN, observeNearViewport, whenPageLoaded } from './adSlotTiming';
+import { useConsent } from '../lib/consent';
 
 /** Native Banner zone 31825903. Official snippet: async script plus the container div. */
 const NATIVE_SCRIPT_SRC = 'https://bauval.org/21/5df5a6a46bb57d8615e5aefa3f8cb512';
@@ -19,8 +20,11 @@ const RESERVED_HEIGHT = LABEL_HEIGHT + LABEL_GAP + CREATIVE_HEIGHT;
  */
 export function AdsterraNative() {
   const slotRef = useRef<HTMLDivElement>(null);
+  const consent = useConsent();
 
   useEffect(() => {
+    // No ad script loads until the visitor accepts cookies. The box stays reserved.
+    if (consent !== 'accepted') return;
     const slot = slotRef.current;
     if (!slot) return;
 
@@ -49,7 +53,7 @@ export function AdsterraNative() {
       cancelled = true;
       stopObserve();
     };
-  }, []);
+  }, [consent]);
 
   return (
     <div

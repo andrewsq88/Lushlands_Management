@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AuthForm } from './AuthForm';
@@ -63,5 +63,22 @@ describe('AuthForm sign-up confirmation', () => {
     expect(await screen.findByText('Password is too weak')).toBeInTheDocument();
     expect(screen.queryByText('Check your email to confirm your account')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Sign up' })).toBeInTheDocument();
+  });
+});
+
+describe('AuthForm initial mode by path', () => {
+  afterEach(() => {
+    window.history.replaceState(null, '', '/');
+  });
+
+  it.each([
+    ['/signup', 'Sign up'],
+    ['/signup/', 'Sign up'],
+    ['/login', 'Sign in'],
+    ['/auth', 'Sign in'],
+  ])('%s opens with the %s button', (path, button) => {
+    window.history.replaceState(null, '', path);
+    render(<AuthForm />);
+    expect(screen.getByRole('button', { name: button })).toBeInTheDocument();
   });
 });

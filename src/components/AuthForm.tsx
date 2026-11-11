@@ -3,8 +3,14 @@ import { Eye, EyeOff, MailCheck } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { LOGO_PATH } from '../seo/site';
 
+/** /signup opens in sign-up mode; /auth, /login and every other path open in sign-in mode. */
+function initialSignUpMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (window.location.pathname.replace(/\/+$/, '') || '/') === '/signup';
+}
+
 export function AuthForm() {
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(initialSignUpMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');

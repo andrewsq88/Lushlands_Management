@@ -13,24 +13,37 @@ function Policy({ title, updated = '4 November 2026', children }: { title: strin
   );
 }
 
-function Section({ heading, children }: { heading: string; children: ReactNode }) {
+function Section({ heading, id, children }: { heading: string; id?: string; children: ReactNode }) {
   return (
-    <section>
+    <section id={id}>
       <h2 className="text-lg font-semibold text-gray-900">{heading}</h2>
       <div className="mt-2 space-y-3">{children}</div>
     </section>
   );
 }
 
+const OPERATOR = 'SQ Consulting';
+const CONTACT_EMAIL = 'andrewsq88@gmail.com';
+
+function ContactLink() {
+  return <a className={textLink} href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>;
+}
+
 export function TermsPage() {
   return (
-    <Policy title="Terms and Conditions" updated="10 November 2026">
+    <Policy title="Terms and Conditions" updated="11 November 2026">
       <Section heading="Agreement">
         <p>
           These terms cover your use of LushLands Management at lushlandsmanagement.com.
           The product is software for landlords, owners, letting agents, and property managers.
           It is not limited to one country. By creating an account or using the site, you agree to
           these terms and to the <a className={textLink} href="/disclaimer">disclaimer</a>.
+        </p>
+      </Section>
+      <Section heading="Who runs the site">
+        <p>
+          LushLands Management is operated by {OPERATOR}. Questions about these terms can be sent
+          to <ContactLink />.
         </p>
       </Section>
       <Section heading="What the service is">
@@ -114,13 +127,17 @@ export function TermsPage() {
 
 export function PrivacyPage() {
   return (
-    <Policy title="Privacy Policy">
+    <Policy title="Privacy Policy" updated="11 November 2026">
       <Section heading="Who this covers">
         <p>
           This policy describes how LushLands Management handles information when you use the
           public site or an account. The product is used worldwide. It does not change your duty
           to follow privacy law where you operate, especially when you store someone else's
           details.
+        </p>
+        <p>
+          The site is operated by {OPERATOR}. For privacy questions or requests, contact{' '}
+          <ContactLink />.
         </p>
       </Section>
       <Section heading="Information you give us">
@@ -151,15 +168,32 @@ export function PrivacyPage() {
       </Section>
       <Section heading="Public pages, advertising, and analytics">
         <p>
-          The home page and the welcome page may show third-party ads. Those ad scripts can set
-          their own cookies. The terms, privacy policy, disclaimer, FAQ, sign-in, payment, and
-          dashboard screens do not mount those ad slots.
+          The home page, the welcome page, and the guides may show third-party advertising served
+          through Adsterra. The terms, privacy policy, disclaimer, FAQ, sign-in, payment, checkout,
+          and dashboard screens do not mount ad slots.
         </p>
         <p>
           Vercel Web Analytics measures visits to the public home and welcome pages, and only
-          while nobody is signed in. Page views from sign-in, payment, checkout, and every
-          signed-in screen are discarded before they are sent. Query strings are not kept on the
-          events that are sent. The policy pages are not included in that analytics allow-list.
+          while nobody is signed in. The script is not loaded on sign-in, payment, checkout,
+          policy, or signed-in screens. Query strings are not kept on the events that are sent.
+        </p>
+      </Section>
+      <Section heading="Cookies and your choices" id="cookies">
+        <p>
+          On your first visit to a public page we show a cookie notice. Advertising scripts and
+          Vercel Web Analytics load only after you choose Accept. If you choose Decline, neither
+          loads and the ad spaces stay empty.
+        </p>
+        <p>
+          Once loaded, third-party advertising scripts can set their own cookies or similar
+          identifiers to show, limit, and measure ads. Vercel Web Analytics does not use cookies;
+          it counts page views on the home and welcome pages without identifying you.
+        </p>
+        <p>
+          Your choice is stored in your browser (local storage) so the notice does not appear on
+          every page. To change it, use Cookie settings in the footer of any public page, or
+          clear this site's data in your browser. Signing in stores a session in your browser,
+          which is needed for the account to work and is not used for advertising.
         </p>
       </Section>
       <Section heading="Service providers">
@@ -174,8 +208,8 @@ export function PrivacyPage() {
         <p>
           Account and portfolio records stay until you delete them in the dashboard or stop using
           the account. You can remove properties and related records you created. You can cancel
-          Premium from the subscription screen. This site does not publish a separate postal
-          address or support inbox.
+          Premium from the subscription screen. To ask about or delete your information, contact{' '}
+          <ContactLink />.
         </p>
       </Section>
       <Section heading="Children">
