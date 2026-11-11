@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, MailCheck } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { LOGO_PATH } from '../seo/site';
 
@@ -12,6 +12,9 @@ export function AuthForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Set after a sign-up that needs email confirmation (no session returned).
+  // Holds the address exactly as typed so it can be shown back; never logged.
+  const [confirmationEmail, setConfirmationEmail] = useState<string | null>(null);
   
   const { signIn, signUp } = useAuth();
 
@@ -34,9 +37,9 @@ export function AuthForm() {
     }
 
     try {
-      console.log('Form submission:', isSignUp ? 'Sign Up' : 'Sign In', 'for email:', email);
+      console.log('Form submission:', isSignUp ? 'Sign Up' : 'Sign In');
       
-      const { error } = isSignUp 
+      const { data, error } = isSignUp 
         ? await signUp(email, password, firstName, lastName)
         : await signIn(email, password);
 
@@ -45,6 +48,11 @@ export function AuthForm() {
         setError(error.message || 'An authentication error occurred');
       } else {
         console.log('Authentication successful');
+        // A sign-up that returns a user but no session is waiting on email
+        // confirmation: replace the form with a "check your email" message.
+        if (isSignUp && data?.user && !data?.session) {
+          setConfirmationEmail(email);
+        }
         // Clear form on success
         setEmail('');
         setPassword('');
@@ -57,6 +65,12 @@ export function AuthForm() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const backToSignIn = () => {
+    setConfirmationEmail(null);
+    setIsSignUp(false);
+    setError('');
   };
 
   return (
@@ -79,7 +93,7 @@ export function AuthForm() {
             />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            {isSignUp ? 'Create your account' : 'Sign in to'}
+            {confirmationEmail ? 'Confirm your email' : isSignUp ? 'Create your account' : 'Sign in to'}
           </h2>
           <div className="mt-2">
             <span className="text-2xl font-bold text-gray-900">
@@ -87,10 +101,35 @@ export function AuthForm() {
             </span>
           </div>
           <p className="mt-2 text-sm text-gray-900">
-            {isSignUp ? 'Start managing your properties today' : 'Welcome back to your property dashboard'}
+            {confirmationEmail
+              ? 'One more step to activate your account'
+              : isSignUp ? 'Start managing your properties today' : 'Welcome back to your property dashboard'}
           </p>
         </div>
 
+        {confirmationEmail ? (
+          <div className="mt-8 bg-white p-8 rounded-xl shadow-lg text-center" role="status" aria-live="polite">
+            <div className="flex justify-center">
+              <MailCheck className="h-10 w-10 text-blue-600" aria-hidden="true" />
+            </div>
+            <h3 className="mt-4 text-lg font-semibold text-gray-900">Check your email to confirm your account</h3>
+            <p className="mt-2 text-sm text-gray-700">
+              We sent a confirmation link to{' '}
+              <span className="font-medium text-gray-900 break-all">{confirmationEmail}</span>.
+              Open it to activate your account, then sign in.
+            </p>
+            <p className="mt-2 text-xs text-gray-500">
+              Can't find it? Check your spam or junk folder.
+            </p>
+            <button
+              type="button"
+              onClick={backToSignIn}
+              className="mt-6 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+            >
+              Back to sign in
+            </button>
+          </div>
+        ) : (
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="bg-white p-8 rounded-xl shadow-lg">
             {error && (
@@ -201,6 +240,7 @@ export function AuthForm() {
             </div>
           </div>
         </form>
+        )}
       </div>
     </div>
   );
