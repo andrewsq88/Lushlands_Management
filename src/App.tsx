@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { Analytics } from '@vercel/analytics/react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { useAppStartup } from './hooks/useAppStartup';
-import { analyticsBeforeSend, setAnalyticsSignedIn } from './lib/analytics';
+import { setAnalyticsSignedIn } from './lib/analytics';
+import { ConsentedAnalytics } from './components/ConsentedAnalytics';
 import { StripeProvider } from './components/StripeProvider';
 import { Layout } from './components/Layout';
 import { AuthForm } from './components/AuthForm';
@@ -39,6 +39,16 @@ function LoadingScreen() {
   );
 }
 
+/**
+ * Signed-in visitors on an auth URL go to the dashboard, or to the
+ * subscription screen when they arrived from a Premium button (?plan=premium).
+ */
+function SignedInAuthRedirect() {
+  const { search } = useLocation();
+  const premium = new URLSearchParams(search).get('plan') === 'premium';
+  return <Navigate to={premium ? '/subscription' : '/'} replace />;
+}
+
 function App({ assumeSignedIn = false }: { assumeSignedIn?: boolean }) {
   const { user, loading } = useAuth();
   setAnalyticsSignedIn(loading || Boolean(user));
@@ -48,7 +58,7 @@ function App({ assumeSignedIn = false }: { assumeSignedIn?: boolean }) {
 
   return (
     <Router>
-      <Analytics beforeSend={analyticsBeforeSend} />
+      <ConsentedAnalytics />
       <Routes>
         {PUBLIC_PAGES.filter((page) => page.path !== '/').map((page) => (
           <Route key={page.path} path={page.path} element={<PublicLanding path={page.path} />} />
@@ -69,9 +79,9 @@ function App({ assumeSignedIn = false }: { assumeSignedIn?: boolean }) {
           <Route path="*" element={<LoadingScreen />} />
         ) : user ? (
           <>
-            <Route path="/auth" element={<Navigate to="/" replace />} />
-            <Route path="/login" element={<Navigate to="/" replace />} />
-            <Route path="/signup" element={<Navigate to="/" replace />} />
+            <Route path="/auth" element={<SignedInAuthRedirect />} />
+            <Route path="/login" element={<SignedInAuthRedirect />} />
+            <Route path="/signup" element={<SignedInAuthRedirect />} />
             <Route element={<DashboardLayout />}>
               <Route path="/properties" element={<Properties />} />
               <Route path="/tenants" element={<Tenants />} />

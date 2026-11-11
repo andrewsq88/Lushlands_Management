@@ -1,6 +1,8 @@
-import { Building2, CreditCard, Wrench } from 'lucide-react';
+import { Building2, CreditCard, Sparkles, Wrench } from 'lucide-react';
 import { AdsterraRectangle } from '../AdsterraBanner';
 import { AdsterraNative } from '../AdsterraNative';
+import { CookieBanner, CookieSettingsButton } from '../CookieBanner';
+import { ADS_ENABLED } from '../../lib/adsConfig';
 import { LOGO_PATH } from '../../seo/site';
 import { GuideArticle } from './guidePages';
 import { DisclaimerPage, FaqPage, PrivacyPage, TermsPage } from './legalPages';
@@ -12,7 +14,7 @@ import { GUIDES } from '../../seo/guides';
  * routes do not render this component.
  */
 export function PublicPage({ path, signedIn }: { path: string; signedIn: boolean }) {
-  const showAds = path === '/' || path === '/welcome';
+  const showAds = ADS_ENABLED && (path === '/' || path === '/welcome');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -45,11 +47,12 @@ export function PublicPage({ path, signedIn }: { path: string; signedIn: boolean
       )}
 
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <PageBody path={path} />
+        <PageBody path={path} signedIn={signedIn} />
       </main>
 
       {showAds && <AdsterraNative />}
       <PublicFooter />
+      <CookieBanner />
     </div>
   );
 }
@@ -67,18 +70,58 @@ const DAILY_PULSE_HREF =
 const WEEKLY_MEAL_PLAN_HREF =
   'https://www.weeklymealplan.space/?utm_source=lushlands&utm_medium=crosslink&utm_campaign=footer-2026-11';
 
-function PageBody({ path }: { path: string }) {
-  if (path === '/') return <HomeBody />;
-  if (path === '/welcome') return <WelcomeBody />;
+/**
+ * Premium call to action for the home and welcome pages. The existing Stripe
+ * Payment Link needs a signed-in user (it carries the account id), so a
+ * signed-out visitor creates an account or signs in first and is then sent to
+ * the subscription screen, which opens that link.
+ */
+export function PremiumCta({ signedIn }: { signedIn: boolean }) {
+  return (
+    <section
+      data-premium-cta=""
+      className="mt-8 rounded-xl border border-blue-200 bg-gradient-to-r from-cyan-50 to-blue-50 p-8"
+    >
+      <div className="flex items-start gap-3">
+        <Sparkles className="h-6 w-6 text-blue-600 flex-shrink-0 mt-1" />
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-900">LushLands Premium</h2>
+          <p className="mt-2 text-gray-700 max-w-3xl">
+            Unlimited properties and no monthly audio or video caps, for 15 US dollars a month billed by Stripe.
+            Cancel any time from the subscription screen.
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-4">
+            <a
+              href={signedIn ? '/subscription' : '/signup?plan=premium'}
+              className="inline-flex items-center px-5 py-2.5 rounded-md text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700"
+            >
+              {signedIn ? 'Upgrade to Premium' : 'Get Premium'}
+            </a>
+            {!signedIn && (
+              <span className="text-sm text-gray-600">
+                Create a free account or{' '}
+                <a className={textLink} href="/login?plan=premium">sign in</a>, then upgrade.
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PageBody({ path, signedIn }: { path: string; signedIn: boolean }) {
+  if (path === '/') return <HomeBody signedIn={signedIn} />;
+  if (path === '/welcome') return <WelcomeBody signedIn={signedIn} />;
   if (path === '/terms') return <TermsPage />;
   if (path === '/privacy') return <PrivacyPage />;
   if (path === '/disclaimer') return <DisclaimerPage />;
   if (path === '/faq') return <FaqPage />;
   if (path.startsWith('/guides/')) return <GuideArticle path={path} />;
-  return <HomeBody />;
+  return <HomeBody signedIn={signedIn} />;
 }
 
-function HomeBody() {
+function HomeBody({ signedIn }: { signedIn: boolean }) {
   return (
     <>
       <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
@@ -98,6 +141,8 @@ function HomeBody() {
           <a className={textLink} href="/faq">FAQ</a> answers common questions.
         </p>
       </section>
+
+      <PremiumCta signedIn={signedIn} />
 
       <section className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-8">
         <h2 className="text-2xl font-semibold text-gray-900">Who it is for</h2>
@@ -159,7 +204,7 @@ function HomeBody() {
   );
 }
 
-function WelcomeBody() {
+function WelcomeBody({ signedIn }: { signedIn: boolean }) {
   return (
     <>
       <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
@@ -177,6 +222,8 @@ function WelcomeBody() {
           <a className={textLink} href="/faq">FAQ</a>.
         </p>
       </section>
+
+      <PremiumCta signedIn={signedIn} />
 
       <section className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-8">
         <h2 className="text-2xl font-semibold text-gray-900">Who it is for</h2>
@@ -280,6 +327,8 @@ function PublicFooter() {
         <a href="/terms" className="hover:text-blue-600">Terms</a>
         <a href="/privacy" className="hover:text-blue-600">Privacy</a>
         <a href="/disclaimer" className="hover:text-blue-600">Disclaimer</a>
+        <a href="/privacy#cookies" className="hover:text-blue-600">Cookies</a>
+        <CookieSettingsButton className="hover:text-blue-600" />
       </nav>
       <nav aria-label="Guides" className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
         {GUIDES.map((guide) => (

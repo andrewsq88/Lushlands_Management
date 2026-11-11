@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { AdsterraRectangle } from '../AdsterraBanner';
 import { AdsterraNative } from '../AdsterraNative';
+import { ADS_ENABLED } from '../../lib/adsConfig';
 import { GUIDES, type Guide } from '../../seo/guides';
 
 const textLink = 'text-blue-600 hover:text-blue-700';
@@ -122,9 +123,11 @@ function Faqs({ guide }: { guide: Guide }) {
   );
 }
 
+/** Ad row with its own top margin, so it collapses completely when ads are switched off. */
 function GuideAds({ slot }: { slot: 1 | 2 }) {
+  if (!ADS_ENABLED) return null;
   return (
-    <div className="flex justify-center overflow-x-auto">
+    <div className="mt-8 flex justify-center overflow-x-auto">
       {slot === 1 ? <AdsterraRectangle /> : <AdsterraNative />}
     </div>
   );
@@ -137,9 +140,7 @@ function IntroAndButton({ intro, button }: { intro: string; button: string }) {
       <p className="mt-6">
         <a href="/auth" className={buttonClass}>{button}</a>
       </p>
-      <div className="mt-8">
-        <GuideAds slot={1} />
-      </div>
+      <GuideAds slot={1} />
     </>
   );
 }
@@ -218,9 +219,7 @@ function TrackRent({ guide }: { guide: Guide }) {
         </Section>
         <Faqs guide={guide} />
       </div>
-      <div className="mt-8">
-        <GuideAds slot={2} />
-      </div>
+      <GuideAds slot={2} />
     </GuideFrame>
   );
 }
@@ -306,9 +305,7 @@ function MaintenanceLog({ guide }: { guide: Guide }) {
         </Section>
         <Faqs guide={guide} />
       </div>
-      <div className="mt-8">
-        <GuideAds slot={2} />
-      </div>
+      <GuideAds slot={2} />
     </GuideFrame>
   );
 }
@@ -400,9 +397,7 @@ function TenantRecords({ guide }: { guide: Guide }) {
         </Section>
         <Faqs guide={guide} />
       </div>
-      <div className="mt-8">
-        <GuideAds slot={2} />
-      </div>
+      <GuideAds slot={2} />
     </GuideFrame>
   );
 }
@@ -484,9 +479,7 @@ function LettingAgents({ guide }: { guide: Guide }) {
         </Section>
         <Faqs guide={guide} />
       </div>
-      <div className="mt-8">
-        <GuideAds slot={2} />
-      </div>
+      <GuideAds slot={2} />
     </GuideFrame>
   );
 }
