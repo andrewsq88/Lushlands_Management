@@ -34,7 +34,7 @@ export function useAuth() {
 
   const signIn = async (email: string, password: string) => {
     try {
-      console.log('Attempting sign in for:', email);
+      console.log('Attempting sign in');
       
       // Validate inputs
       if (!email || !password) {
@@ -73,7 +73,7 @@ export function useAuth() {
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
     try {
-      console.log('Attempting sign up for:', email);
+      console.log('Attempting sign up');
       
       // Validate inputs
       if (!email || !password || !firstName || !lastName) {
