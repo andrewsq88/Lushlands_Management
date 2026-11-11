@@ -2,6 +2,7 @@ import { Building2, CreditCard, Sparkles, Wrench } from 'lucide-react';
 import { AdsterraRectangle } from '../AdsterraBanner';
 import { AdsterraNative } from '../AdsterraNative';
 import { CookieBanner, CookieSettingsButton } from '../CookieBanner';
+import { ADS_ENABLED } from '../../lib/adsConfig';
 import { LOGO_PATH } from '../../seo/site';
 import { GuideArticle } from './guidePages';
 import { DisclaimerPage, FaqPage, PrivacyPage, TermsPage } from './legalPages';
@@ -13,7 +14,7 @@ import { GUIDES } from '../../seo/guides';
  * routes do not render this component.
  */
 export function PublicPage({ path, signedIn }: { path: string; signedIn: boolean }) {
-  const showAds = path === '/' || path === '/welcome';
+  const showAds = ADS_ENABLED && (path === '/' || path === '/welcome');
 
   return (
     <div className="min-h-screen bg-gray-50">

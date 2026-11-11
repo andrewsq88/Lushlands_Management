@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { LOWER_SLOT_ROOT_MARGIN, observeNearViewport, whenPageLoaded } from './adSlotTiming';
 import { useConsent } from '../lib/consent';
+import { ADS_ENABLED } from '../lib/adsConfig';
 
 /** 300x250 banner, zone 31825905. The 728x90 unit is not used. */
 const ADSTERRA_RECTANGLE = {
@@ -164,6 +165,7 @@ export function AdsterraBanner({
 
 /** Fixed 300x250 rectangle, zone 31825905. One slot, placed under the first sign-up control. */
 export function AdsterraRectangle({ className = '' }: { className?: string }) {
+  if (!ADS_ENABLED) return null;
   return (
     <AdsterraBanner
       adKey={ADSTERRA_RECTANGLE.key}

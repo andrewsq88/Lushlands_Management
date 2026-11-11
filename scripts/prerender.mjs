@@ -1,9 +1,13 @@
-import { createServer } from 'vite';
+import { createServer, loadEnv } from 'vite';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+// Same rule as src/lib/adsConfig.ts: ads are on unless VITE_ADS_ENABLED is false/0/off/no.
+const adsFlag = loadEnv('production', root, 'VITE_').VITE_ADS_ENABLED;
+const ADS_ENABLED = adsFlag === undefined || !['false', '0', 'off', 'no'].includes(adsFlag.trim().toLowerCase());
 const dist = path.join(root, 'dist');
 const shellPath = path.join(dist, 'index.html');
 const shell = fs.readFileSync(shellPath, 'utf8');
@@ -295,8 +299,12 @@ try {
     if (!/any country/i.test(html) || !/property managers/i.test(html)) {
       throw new Error(`${route} is missing the landlord and international copy.`);
     }
-    if (!html.includes('data-ad-slot="300x250-below-signup"') || !html.includes('data-ad-slot="native-above-footer"')) {
-      throw new Error(`${route} is missing an ad slot.`);
+    if (ADS_ENABLED) {
+      if (!html.includes('data-ad-slot="300x250-below-signup"') || !html.includes('data-ad-slot="native-above-footer"')) {
+        throw new Error(`${route} is missing an ad slot.`);
+      }
+    } else if (html.includes('data-ad-slot=')) {
+      throw new Error(`${route} still renders an ad slot with ads switched off.`);
     }
     if (!html.includes(logoName) || html.includes('Possible Property Hub Logo')) {
       throw new Error(`${route} still points at the old logo filename.`);
@@ -365,18 +373,22 @@ try {
     if ((html.match(/<h3\b/g) ?? []).length !== 5) {
       throw new Error(`${guide.dir} must show five FAQ questions.`);
     }
-    const buttonAt = html.indexOf(`>${guide.button}</a>`);
-    const firstAd = html.indexOf('data-ad-slot=');
-    const secondAd = html.indexOf('data-ad-slot=', firstAd + 1);
-    const footerAt = html.indexOf('<footer');
-    if (buttonAt < 0 || firstAd < 0 || secondAd < 0 || !(buttonAt < firstAd && firstAd < secondAd && secondAd < footerAt)) {
-      throw new Error(`${guide.dir} ads must be the two slots below the main button and above the footer.`);
-    }
-    if ((html.match(/data-ad-slot=/g) ?? []).length !== 2) {
-      throw new Error(`${guide.dir} must have exactly two ad slots.`);
-    }
-    if (html.slice(footerAt).includes('data-ad-slot=')) {
-      throw new Error(`${guide.dir} has an ad inside the footer.`);
+    if (ADS_ENABLED) {
+      const buttonAt = html.indexOf(`>${guide.button}</a>`);
+      const firstAd = html.indexOf('data-ad-slot=');
+      const secondAd = html.indexOf('data-ad-slot=', firstAd + 1);
+      const footerAt = html.indexOf('<footer');
+      if (buttonAt < 0 || firstAd < 0 || secondAd < 0 || !(buttonAt < firstAd && firstAd < secondAd && secondAd < footerAt)) {
+        throw new Error(`${guide.dir} ads must be the two slots below the main button and above the footer.`);
+      }
+      if ((html.match(/data-ad-slot=/g) ?? []).length !== 2) {
+        throw new Error(`${guide.dir} must have exactly two ad slots.`);
+      }
+      if (html.slice(footerAt).includes('data-ad-slot=')) {
+        throw new Error(`${guide.dir} has an ad inside the footer.`);
+      }
+    } else if (html.includes('data-ad-slot=')) {
+      throw new Error(`${guide.dir} still renders an ad slot with ads switched off.`);
     }
     if (!html.includes('href="/auth"') || !html.includes(`rel="canonical" href="${canonical}"`)) {
       throw new Error(`${guide.dir} is missing /auth or its canonical URL.`);
@@ -548,7 +560,7 @@ try {
     throw new Error('spa.html robots meta changed');
   }
 
-  console.log(`Prerendered ${pages.length} public pages and wrote sitemap.xml`);
+  console.log(`Prerendered ${pages.length} public pages and wrote sitemap.xml (ads ${ADS_ENABLED ? 'on' : 'off'})`);
 } finally {
   await server.close();
 }

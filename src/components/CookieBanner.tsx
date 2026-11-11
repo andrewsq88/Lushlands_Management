@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { setConsent, useConsent } from '../lib/consent';
+import { ADS_ENABLED } from '../lib/adsConfig';
 
 /**
  * Lightweight cookie notice for the public pages. It renders only in the
@@ -26,8 +27,10 @@ export function CookieBanner() {
     >
       <div className="max-w-5xl mx-auto px-4 py-4 sm:flex sm:items-center sm:gap-6">
         <p className="text-sm text-gray-700">
-          We use cookies and similar storage for third-party advertising and to measure visits to our public pages.
-          They only load if you accept. Sign-in and payment pages never show ads. Read the{' '}
+          {ADS_ENABLED
+            ? 'We use cookies and similar storage for third-party advertising and to measure visits to our public pages. They only load if you accept. Sign-in and payment pages never show ads.'
+            : 'We measure visits to our public pages. That only starts if you accept.'}{' '}
+          Read the{' '}
           <a href="/privacy#cookies" className="text-blue-600 hover:text-blue-700 underline">
             cookie section of our privacy policy
           </a>
