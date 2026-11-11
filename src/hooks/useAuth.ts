@@ -83,30 +83,16 @@ export function useAuth() {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          // Read by the on_auth_user_created_profile trigger, which creates the
+          // public.users profile row (see migration 20261111030000).
+          data: { first_name: firstName, last_name: lastName },
+        },
       });
 
       if (data.user && !error) {
-        console.log('User created, creating profile...');
-        
-        try {
-          // Create user profile using the secure database function
-          const { error: profileError } = await supabase.rpc('handle_new_user_profile', {
-            user_id: data.user.id,
-            user_email: data.user.email!,
-            first_name: firstName,
-            last_name: lastName,
-          });
-
-          if (profileError) {
-            console.error('Error creating user profile:', profileError);
-            return { data, error: profileError };
-          } else {
-            console.log('User profile created successfully');
-          }
-        } catch (profileError) {
-          console.warn('Profile creation failed, but user account was created:', profileError);
-          // Don't fail the entire signup if profile creation fails
-        }
+        // The profile row is created by a database trigger on sign-up.
+        console.log('User created');
       } else if (error) {
         console.error('Sign up error:', error);
         // Provide more user-friendly error messages
