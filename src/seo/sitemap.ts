@@ -1,6 +1,7 @@
 import { PUBLIC_PAGES } from './pageMeta';
 import { PRIVATE_PATHS, PUBLIC_PATHS } from './publicPaths';
-import { SITE_ORIGIN, SITEMAP_LASTMOD } from './site';
+import { SITE_ORIGIN } from './site';
+import { SITEMAP_LASTMOD_FALLBACK } from './sitemapLastmod';
 
 /**
  * Crawlers that get their own group. A named group does not inherit rules from
@@ -34,11 +35,21 @@ function locFor(path: string): string {
   return path === '/' ? `${SITE_ORIGIN}/` : `${SITE_ORIGIN}${path}`;
 }
 
-/** Sitemap of public routes only. Private, auth, payment, and checkout URLs are rejected. */
-export function buildSitemapXml(): string {
+/**
+ * Sitemap of public routes only. Private, auth, payment, and checkout URLs are rejected.
+ * `lastmodByPath` is the latest git commit date of each page's source files.
+ * The fallback map is only for a checkout that does not have that history.
+ */
+export function buildSitemapXml(
+  lastmodByPath: Readonly<Record<string, string>> = SITEMAP_LASTMOD_FALLBACK,
+): string {
   const blocks = PUBLIC_PAGES.map((page) => {
     const loc = locFor(page.path);
-    return ['  <url>', `    <loc>${loc}</loc>`, `    <lastmod>${SITEMAP_LASTMOD}</lastmod>`, '  </url>'].join('\n');
+    const lastmod = lastmodByPath[page.path];
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(lastmod ?? '')) {
+      throw new Error(`Sitemap lastmod missing for ${page.path}`);
+    }
+    return ['  <url>', `    <loc>${loc}</loc>`, `    <lastmod>${lastmod}</lastmod>`, '  </url>'].join('\n');
   });
 
   const xml = [
