@@ -304,6 +304,25 @@ function assertNoHeldClaims(value: string, label: string): void {
   }
 }
 
+/**
+ * Breadcrumb item with its own name and an absolute www URL.
+ * `item` is a WebPage, not a bare URL, so Google does not merge it with the
+ * unnamed mainEntityOfPage node and report "Unnamed item".
+ */
+function breadcrumbListItem(position: number, name: string, url: string): Record<string, unknown> {
+  return {
+    '@type': 'ListItem',
+    position,
+    name,
+    item: {
+      '@type': 'WebPage',
+      '@id': url,
+      name,
+      url,
+    },
+  };
+}
+
 export function guideJsonLdFor(guide: Guide): string {
   const canonical = `${SITE_ORIGIN}${guide.path}`;
   for (const faq of guide.faqs) {
@@ -322,18 +341,8 @@ export function guideJsonLdFor(guide: Guide): string {
         '@type': 'BreadcrumbList',
         '@id': `${canonical}#breadcrumb`,
         itemListElement: [
-          {
-            '@type': 'ListItem',
-            position: 1,
-            name: 'Home',
-            item: `${SITE_ORIGIN}/`,
-          },
-          {
-            '@type': 'ListItem',
-            position: 2,
-            name: guide.h1,
-            item: canonical,
-          },
+          breadcrumbListItem(1, 'Home', `${SITE_ORIGIN}/`),
+          breadcrumbListItem(2, guide.h1, canonical),
         ],
       },
       {
@@ -367,7 +376,7 @@ export function guideJsonLdFor(guide: Guide): string {
         description: guide.shortAnswer,
         datePublished: GUIDE_PUBLISHED,
         url: canonical,
-        mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
+        mainEntityOfPage: { '@type': 'WebPage', '@id': canonical, name: guide.h1, url: canonical },
         image: OG_IMAGE,
         author: { '@id': ORGANIZATION_ID },
         publisher: { '@id': ORGANIZATION_ID },

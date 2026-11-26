@@ -200,6 +200,8 @@ function HomeBody({ signedIn }: { signedIn: boolean }) {
           generated clip or on a record in the dashboard.
         </p>
       </section>
+
+      <LandlordGuides />
     </>
   );
 }
@@ -314,7 +316,28 @@ function WelcomeBody({ signedIn }: { signedIn: boolean }) {
           dashboard itself is private to your account and is not a public page.
         </p>
       </section>
+
+      <LandlordGuides />
     </>
+  );
+}
+
+function LandlordGuides() {
+  return (
+    <section className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+      <h2 id="landlord-guides" className="text-2xl font-semibold text-gray-900">
+        Landlord guides
+      </h2>
+      <nav aria-labelledby="landlord-guides">
+        <ul className="mt-4 space-y-3 text-gray-600 list-disc list-inside max-w-3xl">
+          {GUIDES.map((guide) => (
+            <li key={guide.path}>
+              <a className={textLink} href={guide.path}>{guide.title}</a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </section>
   );
 }
 

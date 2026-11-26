@@ -1,4 +1,5 @@
 import { createServer, loadEnv } from 'vite';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -82,6 +83,61 @@ function inject(template, page) {
   return document;
 }
 
+function gitCommitDate(file) {
+  try {
+    const out = execFileSync('git', ['log', '-1', '--format=%cs', '--', file], {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    return /^\d{4}-\d{2}-\d{2}$/.test(out) ? out : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Latest git commit date of the files that render the page, else the recorded fallback. */
+function resolveLastmod(pages, lastmodMod) {
+  const today = new Date().toISOString().slice(0, 10);
+  const resolved = {};
+  for (const page of pages) {
+    const files = lastmodMod.SITEMAP_LASTMOD_SOURCES[page.path];
+    const fallback = lastmodMod.SITEMAP_LASTMOD_FALLBACK[page.path];
+    if (!Array.isArray(files) || files.length === 0) {
+      throw new Error(`No lastmod sources for ${page.path}`);
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fallback ?? '')) {
+      throw new Error(`No fallback lastmod for ${page.path}`);
+    }
+    let latest = null;
+    for (const file of files) {
+      const date = gitCommitDate(file);
+      if (date && (!latest || date > latest)) latest = date;
+    }
+    const chosen = latest ?? fallback;
+    if (chosen > today) {
+      throw new Error(`${page.path} lastmod ${chosen} is in the future`);
+    }
+    resolved[page.path] = chosen;
+  }
+  if (Object.values(resolved).every((date) => date === '2026-11-05')) {
+    throw new Error('Sitemap lastmod values are still stuck at 2026-11-05');
+  }
+  return resolved;
+}
+
+function crumbNamed(crumb, name, url) {
+  const item = crumb?.item;
+  const itemUrl = typeof item === 'string' ? item : item?.url;
+  const itemId = typeof item === 'string' ? item : item?.['@id'];
+  const itemName = typeof item === 'string' ? crumb?.name : item?.name;
+  return crumb?.name === name
+    && itemName === name
+    && itemUrl === url
+    && itemId === url
+    && itemUrl.startsWith('https://www.lushlandsmanagement.com');
+}
+
 const server = await createServer({
   root,
   server: { middlewareMode: true },
@@ -92,8 +148,10 @@ const server = await createServer({
 try {
   const pagesMod = await server.ssrLoadModule('/src/seo/prerenderPublicPages.tsx');
   const sitemapMod = await server.ssrLoadModule('/src/seo/sitemap.ts');
+  const lastmodMod = await server.ssrLoadModule('/src/seo/sitemapLastmod.ts');
   const pages = pagesMod.renderAllPublicPages();
-  const sitemap = sitemapMod.buildSitemapXml();
+  const lastmodByPath = resolveLastmod(pages, lastmodMod);
+  const sitemap = sitemapMod.buildSitemapXml(lastmodByPath);
   const robots = sitemapMod.buildRobotsTxt();
 
   if (!sitemap.startsWith('<?xml version="1.0" encoding="UTF-8"?>')) {
@@ -124,6 +182,10 @@ try {
       : `https://www.lushlandsmanagement.com${page.path}`;
     if (!locs.includes(expectedLoc)) {
       throw new Error(`Sitemap is missing ${expectedLoc}`);
+    }
+    const urlBlock = sitemap.split('<url>').find((part) => part.includes(`<loc>${expectedLoc}</loc>`));
+    if (!urlBlock?.includes(`<lastmod>${lastmodByPath[page.path]}</lastmod>`)) {
+      throw new Error(`Sitemap lastmod for ${expectedLoc} is not ${lastmodByPath[page.path]}`);
     }
   }
 
@@ -283,12 +345,21 @@ try {
     if (!html.includes(otherSitesTitle) || !html.includes(dailyPulseHref) || !html.includes(weeklyMealPlanHref)) {
       throw new Error(`${route} is missing the other-sites footer.`);
     }
+    const guidesHeading = html.indexOf('id="landlord-guides"');
+    const footerAt = html.indexOf('<footer');
+    if (!html.includes('>Landlord guides<') || guidesHeading < 0 || footerAt < 0 || guidesHeading > footerAt) {
+      throw new Error(`${route} is missing the prerendered Landlord guides section`);
+    }
+    const guidesSection = html.slice(guidesHeading, footerAt);
     for (const guidePath of [
       '/guides/track-rent-payments',
       '/guides/maintenance-log-template',
       '/guides/tenant-records',
       '/guides/property-management-for-letting-agents',
     ]) {
+      if (!guidesSection.includes(`href="${guidePath}"`)) {
+        throw new Error(`${route} Landlord guides section is missing ${guidePath}`);
+      }
       if (!html.includes(`href="${guidePath}"`)) {
         throw new Error(`${route} footer is missing ${guidePath}`);
       }
@@ -320,6 +391,9 @@ try {
     }
     if (!html.includes(verification)) {
       throw new Error(`${route} dropped google-site-verification.`);
+    }
+    if (html.includes('id="landlord-guides"') || html.includes('>Landlord guides<')) {
+      throw new Error(`${route} must not include the homepage Landlord guides section`);
     }
   }
 
@@ -404,6 +478,9 @@ try {
     }
     if (!sitemapXml.includes(`<loc>${canonical}</loc>`)) {
       throw new Error(`Sitemap is missing ${canonical}`);
+    }
+    if (html.includes('id="landlord-guides"')) {
+      throw new Error(`${guide.dir} must not include the homepage Landlord guides section`);
     }
     if (!html.includes('Explore our other sites')) {
       throw new Error(`${guide.dir} is missing the public footer.`);
@@ -533,8 +610,13 @@ try {
         throw new Error(`${page.path} Article JSON-LD does not match the visible heading or summary`);
       }
       const crumbs = breadcrumb?.itemListElement;
-      if (!Array.isArray(crumbs) || crumbs.length !== 2 || crumbs[0].name !== 'Home' || crumbs[0].item !== `${origin}/` || crumbs[1].item !== expectedCanonical) {
+      const homeCrumb = Array.isArray(crumbs) ? crumbs[0] : undefined;
+      const pageCrumb = Array.isArray(crumbs) ? crumbs[1] : undefined;
+      if (!homeCrumb || !pageCrumb || crumbs.length !== 2 || !crumbNamed(homeCrumb, 'Home', `${origin}/`) || !crumbNamed(pageCrumb, page.heading, expectedCanonical)) {
         throw new Error(`${page.path} BreadcrumbList does not match the visible breadcrumb`);
+      }
+      if (article.mainEntityOfPage?.name !== article.headline || article.mainEntityOfPage?.url !== expectedCanonical) {
+        throw new Error(`${page.path} WebPage entity is missing its name or canonical URL`);
       }
       if (!howTo?.name || howTo.name !== article.headline || !Array.isArray(howTo.step) || howTo.step.some((step) => {
         const detail = step.text?.startsWith(`${step.name} `) ? step.text.slice(step.name.length + 1) : '';

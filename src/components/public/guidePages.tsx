@@ -21,10 +21,10 @@ function GuideFrame({ guide, children }: { guide: Guide; children: ReactNode }) 
     <article className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
       <nav aria-label="Breadcrumb" className="text-sm">
         <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-gray-600">
-          <li>
+          <li className="flex items-center gap-x-2">
             <a href="/" className={textLink}>Home</a>
+            <span aria-hidden="true">/</span>
           </li>
-          <li aria-hidden="true">/</li>
           <li aria-current="page" className="text-gray-700">{guide.h1}</li>
         </ol>
       </nav>
